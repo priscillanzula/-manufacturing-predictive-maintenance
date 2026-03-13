@@ -28,6 +28,7 @@ SUPABASE_URL = os.environ.get(
 SUPABASE_KEY = os.environ.get(
     "SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxc3B3anNvZmhrdWJ6d2RkanFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MDM5ODAsImV4cCI6MjA4ODk3OTk4MH0.5KMH4wIT_gOGAWPjiKjRU206NkY2Vu_7ly8ZlkYbdYE")
 
+
 @st.cache_resource
 def get_supabase_client():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -37,6 +38,8 @@ def get_supabase_client():
 # Used for: fleet overview, metrics, alert table, dropdown
 # Returns one row per engine — max 100 rows for FD001
 # ============================================================
+
+
 @st.cache_data(ttl=300)
 def load_latest_per_engine():
     """Loads only the latest reading per engine by fetching all data in pages."""
@@ -68,13 +71,14 @@ def load_latest_per_engine():
         df = pd.DataFrame(all_rows)
         df = df.rename(columns={"rul_capped": "RUL_capped"})
         df["RUL_capped"] = pd.to_numeric(df["RUL_capped"], errors="coerce")
-        df["cycle"]      = pd.to_numeric(df["cycle"], errors="coerce")
-        df["engine_id"]  = pd.to_numeric(df["engine_id"], errors="coerce")
+        df["cycle"] = pd.to_numeric(df["cycle"], errors="coerce")
+        df["engine_id"] = pd.to_numeric(df["engine_id"], errors="coerce")
         if "is_anomaly" in df.columns:
             df["is_anomaly"] = df["is_anomaly"].astype(bool)
 
         # Keep only the latest cycle per engine
-        latest = df.sort_values("cycle").groupby("engine_id", as_index=False).last()
+        latest = df.sort_values("cycle").groupby(
+            "engine_id", as_index=False).last()
         return latest
 
     except Exception as e:
@@ -84,6 +88,8 @@ def load_latest_per_engine():
 # ============================================================
 # LOAD FULL HISTORY FOR ONE ENGINE (on demand in deep dive)
 # ============================================================
+
+
 @st.cache_data(ttl=300)
 def load_engine_history(engine_id: int):
     """Loads all readings for a single engine — used in deep dive."""
@@ -101,7 +107,7 @@ def load_engine_history(engine_id: int):
         df = pd.DataFrame(response.data)
         df = df.rename(columns={"rul_capped": "RUL_capped"})
         df["RUL_capped"] = pd.to_numeric(df["RUL_capped"], errors="coerce")
-        df["cycle"]      = pd.to_numeric(df["cycle"], errors="coerce")
+        df["cycle"] = pd.to_numeric(df["cycle"], errors="coerce")
         if "is_anomaly" in df.columns:
             df["is_anomaly"] = df["is_anomaly"].astype(bool)
         return df.sort_values("cycle").reset_index(drop=True)
@@ -109,11 +115,13 @@ def load_engine_history(engine_id: int):
         st.error(f"Could not load engine {engine_id} history: {e}")
         return pd.DataFrame()
 
+
 @st.cache_resource
 def load_model():
     if os.path.exists("data/random_forest_model.pkl"):
         return joblib.load("data/random_forest_model.pkl")
     return None
+
 
 # ============================================================
 # LOAD DATA
@@ -137,7 +145,8 @@ with col_refresh:
         st.cache_data.clear()
         st.rerun()
 with col_time:
-    st.caption(f"Auto-refreshes every 5 minutes. Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    st.caption(
+        f"Auto-refreshes every 5 minutes. Last loaded: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 st.markdown("---")
 
@@ -150,14 +159,16 @@ if latest_readings.empty:
 # ============================================================
 conditions = [
     latest_readings["RUL_capped"] < 30,
-    (latest_readings["RUL_capped"] >= 30) & (latest_readings["RUL_capped"] < 80),
+    (latest_readings["RUL_capped"] >= 30) & (
+        latest_readings["RUL_capped"] < 80),
     latest_readings["RUL_capped"] >= 80
 ]
 choices = ["🔴 DANGER", "🟡 WARNING", "🟢 HEALTHY"]
-latest_readings["health_status"] = np.select(conditions, choices, default="🟢 HEALTHY")
+latest_readings["health_status"] = np.select(
+    conditions, choices, default="🟢 HEALTHY")
 
 total_engines = latest_readings["engine_id"].nunique()
-danger_count  = (latest_readings["health_status"] == "🔴 DANGER").sum()
+danger_count = (latest_readings["health_status"] == "🔴 DANGER").sum()
 warning_count = (latest_readings["health_status"] == "🟡 WARNING").sum()
 healthy_count = (latest_readings["health_status"] == "🟢 HEALTHY").sum()
 
@@ -186,7 +197,8 @@ st.subheader("🏥 Fleet Health Overview")
 col_left, col_right = st.columns(2)
 
 with col_left:
-    status_counts = latest_readings["health_status"].value_counts().reset_index()
+    status_counts = latest_readings["health_status"].value_counts(
+    ).reset_index()
     status_counts.columns = ["Status", "Count"]
 
     color_map = {
@@ -226,10 +238,12 @@ with col_right:
 # ============================================================
 st.markdown("---")
 st.subheader("📋 Full Fleet Summary — All 100 Engines")
-st.markdown("Every engine in the fleet sorted by urgency. Use this as your daily work order.")
+st.markdown(
+    "Every engine in the fleet sorted by urgency. Use this as your daily work order.")
 
-summary = latest_readings[["engine_id","cycle","RUL_capped","health_status"]].copy()
-summary.columns = ["Engine ID","Last Cycle","Estimated RUL","Status"]
+summary = latest_readings[["engine_id", "cycle",
+                           "RUL_capped", "health_status"]].copy()
+summary.columns = ["Engine ID", "Last Cycle", "Estimated RUL", "Status"]
 summary = summary.sort_values("Estimated RUL")
 summary["Estimated RUL"] = summary["Estimated RUL"].round(1)
 summary["Action"] = summary["Status"].map({
@@ -238,12 +252,14 @@ summary["Action"] = summary["Status"].map({
     "🟢 HEALTHY": "Continue monitoring. No action needed."
 })
 
+
 def style_status(val):
     if "DANGER" in str(val):
         return "background-color:#fadbd8; color:#922b21; font-weight:bold"
     elif "WARNING" in str(val):
         return "background-color:#fef9e7; color:#7d6608; font-weight:bold"
     return "background-color:#eafaf1; color:#1e8449"
+
 
 st.dataframe(
     summary.style.map(style_status, subset=["Status"]),
@@ -267,7 +283,8 @@ st.download_button(
 # ============================================================
 st.markdown("---")
 st.subheader("🔍 Individual Engine Deep Dive")
-st.markdown("Select any engine to see its full sensor history, RUL degradation and anomaly detections.")
+st.markdown(
+    "Select any engine to see its full sensor history, RUL degradation and anomaly detections.")
 
 # Build dropdown labels showing health status for all 100 engines
 engine_status_map = dict(zip(
@@ -275,13 +292,15 @@ engine_status_map = dict(zip(
     latest_readings["health_status"]
 ))
 all_engine_ids = sorted(latest_readings["engine_id"].astype(int).unique())
-engine_labels  = [f"Engine {e}  —  {engine_status_map.get(e, '')}" for e in all_engine_ids]
-label_to_id    = dict(zip(engine_labels, all_engine_ids))
+engine_labels = [
+    f"Engine {e}  —  {engine_status_map.get(e, '')}" for e in all_engine_ids]
+label_to_id = dict(zip(engine_labels, all_engine_ids))
 
 st.info(f"All **{total_engines} engines** are available below. "
         f"🔴 {int(danger_count)} DANGER · 🟡 {int(warning_count)} WARNING · 🟢 {int(healthy_count)} HEALTHY")
 
-selected_label  = st.selectbox("Select an Engine to Inspect:", options=engine_labels)
+selected_label = st.selectbox(
+    "Select an Engine to Inspect:", options=engine_labels)
 selected_engine = label_to_id[selected_label]
 
 # Load full history for selected engine
@@ -291,9 +310,10 @@ if engine_data.empty:
     st.warning(f"No history data found for Engine {selected_engine}.")
     st.stop()
 
-current_rul        = engine_data["RUL_capped"].iloc[-1]
+current_rul = engine_data["RUL_capped"].iloc[-1]
 total_cycles_lived = int(engine_data["cycle"].max())
-anomaly_count_eng  = int(engine_data["is_anomaly"].sum()) if "is_anomaly" in engine_data.columns else 0
+anomaly_count_eng = int(engine_data["is_anomaly"].sum(
+)) if "is_anomaly" in engine_data.columns else 0
 
 if current_rul < 30:
     health_emoji, health_text, health_color = "🔴", "DANGER — Immediate maintenance required!", "#e74c3c"
@@ -316,8 +336,10 @@ st.markdown(f"""
 fig_gauge = go.Figure(go.Indicator(
     mode="gauge+number+delta",
     value=int(current_rul),
-    delta={"reference": 80, "decreasing": {"color":"#e74c3c"}, "increasing":{"color":"#2ecc71"}},
-    title={"text": f"Remaining Useful Life — Engine {selected_engine}", "font":{"size":16}},
+    delta={"reference": 80, "decreasing": {"color": "#e74c3c"},
+           "increasing": {"color": "#2ecc71"}},
+    title={"text": f"Remaining Useful Life — Engine {selected_engine}",
+           "font": {"size": 16}},
     gauge={
         "axis": {"range": [0, 125]},
         "bar":  {"color": health_color, "thickness": 0.3},
@@ -326,7 +348,7 @@ fig_gauge = go.Figure(go.Indicator(
             {"range": [30, 80],  "color": "#fef9e7"},
             {"range": [80, 125], "color": "#eafaf1"},
         ],
-        "threshold": {"line":{"color":"red","width":4}, "thickness":0.75, "value":30}
+        "threshold": {"line": {"color": "red", "width": 4}, "thickness": 0.75, "value": 30}
     }
 ))
 fig_gauge.update_layout(height=300, margin=dict(t=60, b=20))
@@ -337,7 +359,8 @@ st.subheader(f"📉 RUL Degradation — Engine {selected_engine}")
 fig_rul = px.line(
     engine_data, x="cycle", y="RUL_capped",
     title=f"How Engine {selected_engine}'s Remaining Life Decreased Over {total_cycles_lived} Cycles",
-    labels={"cycle":"Cycle Number","RUL_capped":"Remaining Useful Life (cycles)"},
+    labels={"cycle": "Cycle Number",
+            "RUL_capped": "Remaining Useful Life (cycles)"},
     color_discrete_sequence=["#8e44ad"]
 )
 fig_rul.add_hline(y=30, line_dash="dash", line_color="red",
@@ -346,7 +369,8 @@ fig_rul.add_hline(y=80, line_dash="dash", line_color="orange",
                   annotation_text="🟡 Warning threshold")
 fig_rul.update_layout(hovermode="x unified")
 st.plotly_chart(fig_rul, use_container_width=True)
-st.caption("A steeper slope means faster degradation. Sudden drops may indicate a developing fault.")
+st.caption(
+    "A steeper slope means faster degradation. Sudden drops may indicate a developing fault.")
 
 # Sensor trend chart
 st.subheader(f"📊 Sensor Trends — Engine {selected_engine}")
@@ -356,16 +380,18 @@ sensor_options = {
     "Sensor 11 (Static Pressure)":  "sensor_11",
     "Sensor 12 (Fuel Flow)":        "sensor_12",
 }
-available_sensors = {k:v for k,v in sensor_options.items() if v in engine_data.columns}
+available_sensors = {k: v for k,
+                     v in sensor_options.items() if v in engine_data.columns}
 
 if available_sensors:
-    selected_sensor_label = st.selectbox("Select sensor:", options=list(available_sensors.keys()))
+    selected_sensor_label = st.selectbox(
+        "Select sensor:", options=list(available_sensors.keys()))
     selected_sensor = available_sensors[selected_sensor_label]
 
     fig_sensor = px.line(
         engine_data, x="cycle", y=selected_sensor,
         title=f"{selected_sensor_label} — Engine {selected_engine}",
-        labels={"cycle":"Cycle Number", selected_sensor:"Sensor Reading"},
+        labels={"cycle": "Cycle Number", selected_sensor: "Sensor Reading"},
         color_discrete_sequence=["#3498db"]
     )
     if "is_anomaly" in engine_data.columns:
