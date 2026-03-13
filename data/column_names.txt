@@ -1,0 +1,40 @@
+# CMAPSS Dataset Column Names
+# Source: NASA Ames Prognostics Center of Excellence
+# Scraped and documented for the Predictive Maintenance Project
+
+COLUMN_ORDER:
+1.  engine_id        - Which engine this reading is from (1, 2, 3...)
+2.  cycle            - Time step number (like a clock tick, goes up until engine fails)
+3.  op_setting_1     - Operational setting 1 (flight conditions)
+4.  op_setting_2     - Operational setting 2 (flight conditions)
+5.  op_setting_3     - Operational setting 3 (flight conditions)
+6.  sensor_1         - Fan inlet temperature (°R)
+7.  sensor_2         - LPC outlet temperature (°R)
+8.  sensor_3         - HPC outlet temperature (°R)
+9.  sensor_4         - LPT outlet temperature (°R)
+10. sensor_5         - Fan inlet pressure (psia)
+11. sensor_6         - Bypass-duct pressure (psia)
+12. sensor_7         - HPC outlet pressure (psia)
+13. sensor_8         - Physical fan speed (rpm)
+14. sensor_9         - Physical core speed (rpm)
+15. sensor_10        - Engine pressure ratio (EPR)
+16. sensor_11        - HPC outlet static pressure (psia)
+17. sensor_12        - Fuel flow ratio (pps/psia)
+18. sensor_13        - Corrected fan speed (rpm)
+19. sensor_14        - Corrected core speed (rpm)
+20. sensor_15        - Bypass ratio
+21. sensor_16        - Burner fuel-air ratio
+22. sensor_17        - Bleed enthalpy
+23. sensor_18        - Demanded fan speed (rpm)
+24. sensor_19        - Demanded corrected fan speed (rpm)
+25. sensor_20        - HPT coolant bleed (lbm/s)
+26. sensor_21        - LPT coolant bleed (lbm/s)
+
+ABBREVIATIONS:
+LPC = Low Pressure Compressor
+HPC = High Pressure Compressor
+LPT = Low Pressure Turbine
+HPT = High Pressure Turbine
+psia = pounds per square inch absolute
+rpm = revolutions per minute
+°R = degrees Rankine (temperature scale)
