@@ -28,7 +28,7 @@ GMAIL_ADDRESS = "danielpriscilla61@gmail.com"
 GMAIL_PASSWORD = os.environ.get(
     "GMAIL_APP_PASSWORD", "your-gmail-app-password")
 
-ALERT_EMAIL_TO = "danielpriscilla61@gmail.com"
+ALERT_EMAIL_TO = ""
 
 # ============================================================
 # CONNECT TO SUPABASE
