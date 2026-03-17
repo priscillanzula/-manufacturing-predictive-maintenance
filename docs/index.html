@@ -236,7 +236,8 @@
             <div class="finding-title">Life stage is the dominant signal <span class="tag tag-p">94.5% importance</span>
             </div>
             <div class="finding-text">cycle_ratio alone drives 94.5% of the model&rsquo;s predictive power. No single
-              raw sensor comes close. Where an engine is in its lifecycle matters far more than instantaneous readings.
+              raw sensor comes close. <br>Where an engine is in its lifecycle matters far more than instantaneous
+              readings.
             </div>
           </div>
         </div>
@@ -245,8 +246,10 @@
           <div class="finding-num">02</div>
           <div class="finding-body">
             <div class="finding-title">7 sensors carry zero signal <span class="tag tag-d">drop</span></div>
-            <div class="finding-text">sensor_1, 5, 6, 10, 16, 18, 19 are constant across all 20,631 readings. Removing
-              them cut model complexity with zero accuracy loss.</div>
+            <div class="finding-text">sensor_1, 5, 6, 10, 16, 18, 19 are constant across all 20,631 readings.
+              <br>Removing
+              them cut model complexity with zero accuracy loss.
+            </div>
           </div>
         </div>
 
@@ -254,7 +257,7 @@
           <div class="finding-num">03</div>
           <div class="finding-body">
             <div class="finding-title">Pressure &amp; temperature degrade predictably <span class="tag tag-s">r =
-                0.70</span></div>
+                0.70</span></div><br>
             <div class="finding-text">sensor_11 (HPC static pressure, r = 0.696) and sensor_4 (LPT temperature, r =
               0.679) show the strongest monotonic correlation with remaining life.</div>
           </div>
@@ -266,7 +269,9 @@
             <div class="finding-title">Wide lifespan variance across fleet <span class="tag tag-a">128&ndash;362
                 cycles</span></div>
             <div class="finding-text">Engines vary enormously &mdash; shortest life 128 cycles, longest 362. Standard
-              deviation of 46 cycles. This variance is exactly why predictive beats scheduled maintenance.</div>
+              deviation of 46 cycles.
+              <br>This variance is exactly why predictive beats scheduled maintenance.
+            </div>
           </div>
         </div>
 
@@ -286,23 +291,31 @@
         <div style="display:flex;flex-direction:column;gap:10px;">
           <div class="rec rec-d">
             <div class="rec-title">Ground 25 engines immediately</div>
-            <div class="rec-body">Engines with RUL &lt; 30 cycles must be pulled from service. At $500k+ per unplanned
-              failure, preventing a single incident recoups the entire cost of this system. Prioritise engines #34, #31,
-              #81, #68 &mdash; all at RUL &le; 8.</div>
+            <div class="rec-body">Engines with RUL &lt; 30 cycles must be pulled from service.<br> At $500k+ per
+              unplanned
+              failure, preventing a single incident recoups the entire cost of this system.
+              <br>Prioritise engines #34, #31,
+              #81, #68 &mdash; all at RUL &le; 8.
+            </div>
           </div>
           <div class="rec rec-w">
-            <div class="rec-title">Schedule 20 warning engines within one maintenance cycle</div>
+            <div class="rec-title">Schedule 20 warning engines within one maintenance cycle.</div><br>
             <div class="rec-body">Monitor sensor_11 rolling average and sensor_7 rolling average &mdash; these are the
-              earliest-moving degradation signals. Trigger alerts when either crosses 1.5 std dev from baseline.</div>
+              earliest-moving degradation signals.
+              Trigger alerts when either crosses 1.5 std dev from baseline.</div>
           </div>
           <div class="rec rec-s">
             <div class="rec-title">Automate daily alerts via GitHub Actions</div>
-            <div class="rec-body">send_alerts.py is production-ready. Schedule it as a daily cron job. This ensures no engine crosses the danger threshold between manual checks.</div>
+            <div class="rec-body">send_alerts.py is production-ready. Schedule it as a daily cron job.
+              <br>This ensures no
+              engine crosses the danger threshold between manual checks.
+            </div>
           </div>
           <div class="rec rec-a">
             <div class="rec-title">Extend model to FD002&ndash;FD004 for real-world generalisation</div>
             <div class="rec-body">Current model is trained on one operating condition. FD002&ndash;FD004 add five more.
-              Re-training with op_setting features would make the system fleet-ready for mixed operations.</div>
+              <br> Re-training with op_setting features would make the system fleet-ready for mixed operations.
+            </div>
           </div>
         </div>
       </div>
