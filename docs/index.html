@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,8 @@
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap"
+    rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="dashboard.css">
@@ -15,286 +17,431 @@
   <!-- Chart.js (must load before dashboard.js) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
-<div class="page">
+  <div class="page">
 
-  <!-- ── HEADER ───────────────────────────────────────────────── -->
-  <header>
-    <div class="header-left">
-      <div class="eyebrow">&#9992; Predictive Maintenance System</div>
-      <h1>Turbofan Engine <span>Analytics</span></h1>
-      <div class="header-sub">NASA CMAPSS FD001 &middot; Random Forest R&sup2; 0.969 &middot; 100 engines monitored</div>
-    </div>
-    <div class="header-right">
-      <div class="last-updated"><span class="live-dot"></span>Static snapshot &mdash; see AUTOMATION.md to refresh</div>
-      <div class="last-updated" style="margin-top:4px" id="ts"></div>
-    </div>
-  </header>
-
-  <!-- ── KPI STRIP ────────────────────────────────────────────── -->
-  <div class="kpi-strip">
-    <div class="kpi">
-      <div class="kpi-label">Engines</div>
-      <div class="kpi-val a">100</div>
-      <div class="kpi-sub">FD001 test set</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Danger</div>
-      <div class="kpi-val d">25</div>
-      <div class="kpi-sub">RUL &lt; 30 cycles</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Warning</div>
-      <div class="kpi-val w">20</div>
-      <div class="kpi-sub">RUL 30&ndash;80 cycles</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Healthy</div>
-      <div class="kpi-val s">55</div>
-      <div class="kpi-sub">RUL &gt; 80 cycles</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Model R&sup2;</div>
-      <div class="kpi-val p">0.969</div>
-      <div class="kpi-sub">Random Forest</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">RMSE</div>
-      <div class="kpi-val a">7.2</div>
-      <div class="kpi-sub">cycles avg error</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Avg RUL</div>
-      <div class="kpi-val w">75.5</div>
-      <div class="kpi-sub">fleet average</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Min RUL</div>
-      <div class="kpi-val d">7</div>
-      <div class="kpi-sub">Engine #34</div>
-    </div>
-  </div>
-
-  <!-- ── SECTION: FLEET OVERVIEW ──────────────────────────────── -->
-  <div class="section-label">Fleet health overview</div>
-
-  <div class="grid-2">
-    <!-- Fleet donut -->
-    <div class="card">
-      <div class="card-title">Fleet health distribution</div>
-      <div class="card-sub">100 engines by remaining useful life status</div>
-      <div style="display:flex;align-items:center;gap:24px;">
-        <div class="chart-wrap" style="height:200px;width:200px;flex-shrink:0;">
-          <canvas id="c-donut"></canvas>
+    <!-- ── HEADER ───────────────────────────────────────────────── -->
+    <header>
+      <div class="header-left">
+        <div class="eyebrow">&#9992; Predictive Maintenance System</div>
+        <h1>Turbofan Engine <span>Analytics</span></h1>
+        <div class="header-sub">NASA CMAPSS FD001 &middot; Random Forest R&sup2; 0.969 &middot; 100 engines monitored
         </div>
-        <div style="flex:1;">
-          <div style="margin-bottom:14px;">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Danger &mdash; RUL &lt; 30</div>
-            <div style="font-size:20px;font-family:var(--font-head);font-weight:700;color:var(--danger);">25 <span style="font-size:13px;font-weight:400;color:var(--muted);">engines</span></div>
-            <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;">
-              <div style="height:100%;width:25%;background:var(--danger);border-radius:2px;"></div>
+      </div>
+      <div class="header-right">
+        <div class="last-updated"><span class="live-dot"></span>Static snapshot &mdash;</div>
+        <div class="last-updated" style="margin-top:4px" id="ts"></div>
+      </div>
+    </header>
+
+    <!-- ── KPI STRIP ────────────────────────────────────────────── -->
+    <div class="kpi-strip">
+      <div class="kpi">
+        <div class="kpi-label">Engines</div>
+        <div class="kpi-val a">100</div>
+        <div class="kpi-sub">FD001 test set</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Danger</div>
+        <div class="kpi-val d">25</div>
+        <div class="kpi-sub">RUL &lt; 30 cycles</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Warning</div>
+        <div class="kpi-val w">20</div>
+        <div class="kpi-sub">RUL 30&ndash;80 cycles</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Healthy</div>
+        <div class="kpi-val s">55</div>
+        <div class="kpi-sub">RUL &gt; 80 cycles</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Model R&sup2;</div>
+        <div class="kpi-val p">0.969</div>
+        <div class="kpi-sub">Random Forest</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">RMSE</div>
+        <div class="kpi-val a">7.2</div>
+        <div class="kpi-sub">cycles avg error</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Avg RUL</div>
+        <div class="kpi-val w">75.5</div>
+        <div class="kpi-sub">fleet average</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Min RUL</div>
+        <div class="kpi-val d">7</div>
+        <div class="kpi-sub">Engine #34</div>
+      </div>
+    </div>
+
+    <!-- ── SECTION: FLEET OVERVIEW ──────────────────────────────── -->
+    <div class="section-label">Fleet health overview</div>
+
+    <div class="grid-2">
+      <!-- Fleet donut -->
+      <div class="card">
+        <div class="card-title">Fleet health distribution</div>
+        <div class="card-sub">100 engines by remaining useful life status</div>
+        <div style="display:flex;align-items:center;gap:24px;">
+          <div class="chart-wrap" style="height:200px;width:200px;flex-shrink:0;">
+            <canvas id="c-donut"></canvas>
+          </div>
+          <div style="flex:1;">
+            <div style="margin-bottom:14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Danger &mdash; RUL &lt; 30</div>
+              <div style="font-size:20px;font-family:var(--font-head);font-weight:700;color:var(--danger);">25 <span
+                  style="font-size:13px;font-weight:400;color:var(--muted);">engines</span></div>
+              <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;">
+                <div style="height:100%;width:25%;background:var(--danger);border-radius:2px;"></div>
+              </div>
+            </div>
+            <div style="margin-bottom:14px;">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Warning &mdash; RUL 30&ndash;80</div>
+              <div style="font-size:20px;font-family:var(--font-head);font-weight:700;color:var(--warning);">20 <span
+                  style="font-size:13px;font-weight:400;color:var(--muted);">engines</span></div>
+              <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;">
+                <div style="height:100%;width:20%;background:var(--warning);border-radius:2px;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Healthy &mdash; RUL &gt; 80</div>
+              <div style="font-size:20px;font-family:var(--font-head);font-weight:700;color:var(--success);">55 <span
+                  style="font-size:13px;font-weight:400;color:var(--muted);">engines</span></div>
+              <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;">
+                <div style="height:100%;width:55%;background:var(--success);border-radius:2px;"></div>
+              </div>
             </div>
           </div>
-          <div style="margin-bottom:14px;">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Warning &mdash; RUL 30&ndash;80</div>
-            <div style="font-size:20px;font-family:var(--font-head);font-weight:700;color:var(--warning);">20 <span style="font-size:13px;font-weight:400;color:var(--muted);">engines</span></div>
-            <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;">
-              <div style="height:100%;width:20%;background:var(--warning);border-radius:2px;"></div>
+        </div>
+      </div>
+
+      <!-- RUL distribution -->
+      <div class="card">
+        <div class="card-title">RUL distribution across fleet</div>
+        <div class="card-sub">How many cycles remaining per engine group</div>
+        <div class="chart-wrap" style="height:220px;">
+          <canvas id="c-rul-dist"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lifespan histogram + critical table -->
+    <div class="grid-3-1">
+      <div class="card">
+        <div class="card-title">Engine lifespan distribution</div>
+        <div class="card-sub">Total cycles survived before failure &mdash; 100 training engines &middot; avg 206 cycles
+        </div>
+        <div class="chart-wrap" style="height:220px;">
+          <canvas id="c-life"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Critical engines</div>
+        <div class="card-sub">Lowest RUL &mdash; immediate action required</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Engine</th>
+              <th>RUL</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>#34</td>
+              <td style="font-family:var(--font-mono);color:var(--danger);">7</td>
+              <td><span class="badge badge-d">DANGER</span></td>
+            </tr>
+            <tr>
+              <td>#31</td>
+              <td style="font-family:var(--font-mono);color:var(--danger);">8</td>
+              <td><span class="badge badge-d">DANGER</span></td>
+            </tr>
+            <tr>
+              <td>#81</td>
+              <td style="font-family:var(--font-mono);color:var(--danger);">8</td>
+              <td><span class="badge badge-d">DANGER</span></td>
+            </tr>
+            <tr>
+              <td>#68</td>
+              <td style="font-family:var(--font-mono);color:var(--danger);">8</td>
+              <td><span class="badge badge-d">DANGER</span></td>
+            </tr>
+            <tr>
+              <td>#82</td>
+              <td style="font-family:var(--font-mono);color:var(--danger);">9</td>
+              <td><span class="badge badge-d">DANGER</span></td>
+            </tr>
+            <tr>
+              <td>#76</td>
+              <td style="font-family:var(--font-mono);color:var(--danger);">10</td>
+              <td><span class="badge badge-d">DANGER</span></td>
+            </tr>
+            <tr>
+              <td>#42</td>
+              <td style="font-family:var(--font-mono);color:var(--danger);">10</td>
+              <td><span class="badge badge-d">DANGER</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── SECTION: MODEL INSIGHTS ──────────────────────────────── -->
+    <div class="section-label" style="margin-top:8px;">Model insights</div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Sensor correlation with RUL</div>
+        <div class="card-sub">Absolute Pearson r &mdash; higher = more predictive of remaining life</div>
+        <div class="chart-wrap" style="height:320px;">
+          <canvas id="c-corr"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Feature importance</div>
+        <div class="card-sub">Random Forest Gini importance &mdash; top 8 features</div>
+        <div class="chart-wrap" style="height:320px;">
+          <canvas id="c-imp"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Degradation line chart -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Sensor degradation across engine life</div>
+      <div class="card-sub">Average reading at each life stage (0&ndash;100%) for 4 key sensors &mdash; training set,
+        100 engines. Sensor 7 &amp; 12 decrease; sensor 2 &amp; 11 increase as engines age.</div>
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="c-degrade"></canvas>
+      </div>
+    </div>
+
+    <!-- ── FINDINGS + RECOMMENDATIONS ───────────────────────────── -->
+    <div class="grid-2">
+      <!-- Findings -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px;">Key findings</div>
+
+        <div class="finding">
+          <div class="finding-num">01</div>
+          <div class="finding-body">
+            <div class="finding-title">Life stage is the dominant signal <span class="tag tag-p">94.5% importance</span>
+            </div>
+            <div class="finding-text">cycle_ratio alone drives 94.5% of the model&rsquo;s predictive power. No single
+              raw sensor comes close. Where an engine is in its lifecycle matters far more than instantaneous readings.
             </div>
           </div>
-          <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Healthy &mdash; RUL &gt; 80</div>
-            <div style="font-size:20px;font-family:var(--font-head);font-weight:700;color:var(--success);">55 <span style="font-size:13px;font-weight:400;color:var(--muted);">engines</span></div>
-            <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;">
-              <div style="height:100%;width:55%;background:var(--success);border-radius:2px;"></div>
-            </div>
+        </div>
+
+        <div class="finding">
+          <div class="finding-num">02</div>
+          <div class="finding-body">
+            <div class="finding-title">7 sensors carry zero signal <span class="tag tag-d">drop</span></div>
+            <div class="finding-text">sensor_1, 5, 6, 10, 16, 18, 19 are constant across all 20,631 readings. Removing
+              them cut model complexity with zero accuracy loss.</div>
+          </div>
+        </div>
+
+        <div class="finding">
+          <div class="finding-num">03</div>
+          <div class="finding-body">
+            <div class="finding-title">Pressure &amp; temperature degrade predictably <span class="tag tag-s">r =
+                0.70</span></div>
+            <div class="finding-text">sensor_11 (HPC static pressure, r = 0.696) and sensor_4 (LPT temperature, r =
+              0.679) show the strongest monotonic correlation with remaining life.</div>
+          </div>
+        </div>
+
+        <div class="finding">
+          <div class="finding-num">04</div>
+          <div class="finding-body">
+            <div class="finding-title">Wide lifespan variance across fleet <span class="tag tag-a">128&ndash;362
+                cycles</span></div>
+            <div class="finding-text">Engines vary enormously &mdash; shortest life 128 cycles, longest 362. Standard
+              deviation of 46 cycles. This variance is exactly why predictive beats scheduled maintenance.</div>
+          </div>
+        </div>
+
+        <div class="finding">
+          <div class="finding-num">05</div>
+          <div class="finding-body">
+            <div class="finding-title">Model provides 3&ndash;4 week advance warning</div>
+            <div class="finding-text">With RMSE of 7.2 cycles and the danger threshold at 30 cycles, maintenance teams
+              get a reliable window of ~23 cycles to plan and execute intervention before failure.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommendations -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px;">Recommendations</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="rec rec-d">
+            <div class="rec-title">Ground 25 engines immediately</div>
+            <div class="rec-body">Engines with RUL &lt; 30 cycles must be pulled from service. At $500k+ per unplanned
+              failure, preventing a single incident recoups the entire cost of this system. Prioritise engines #34, #31,
+              #81, #68 &mdash; all at RUL &le; 8.</div>
+          </div>
+          <div class="rec rec-w">
+            <div class="rec-title">Schedule 20 warning engines within one maintenance cycle</div>
+            <div class="rec-body">Monitor sensor_11 rolling average and sensor_7 rolling average &mdash; these are the
+              earliest-moving degradation signals. Trigger alerts when either crosses 1.5 std dev from baseline.</div>
+          </div>
+          <div class="rec rec-s">
+            <div class="rec-title">Automate daily alerts via GitHub Actions</div>
+            <div class="rec-body">send_alerts.py is production-ready. Schedule it as a daily cron job. This ensures no engine crosses the danger threshold between manual checks.</div>
+          </div>
+          <div class="rec rec-a">
+            <div class="rec-title">Extend model to FD002&ndash;FD004 for real-world generalisation</div>
+            <div class="rec-body">Current model is trained on one operating condition. FD002&ndash;FD004 add five more.
+              Re-training with op_setting features would make the system fleet-ready for mixed operations.</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- RUL distribution -->
-    <div class="card">
-      <div class="card-title">RUL distribution across fleet</div>
-      <div class="card-sub">How many cycles remaining per engine group</div>
-      <div class="chart-wrap" style="height:220px;">
-        <canvas id="c-rul-dist"></canvas>
+    <!-- ── ALL SENSOR CORRELATIONS ───────────────────────────────── -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:16px;">All sensor correlations with RUL</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0 24px;">
+        <div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_11</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:100%;background:var(--danger);"></div>
+            </div>
+            <div class="sensor-val">0.696</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_4</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:97.6%;background:var(--danger);"></div>
+            </div>
+            <div class="sensor-val">0.679</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_12</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:96.6%;background:var(--danger);"></div>
+            </div>
+            <div class="sensor-val">0.672</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_7</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:94.4%;background:var(--danger);"></div>
+            </div>
+            <div class="sensor-val">0.657</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_15</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:92.3%;background:var(--warning);"></div>
+            </div>
+            <div class="sensor-val">0.643</div>
+          </div>
+        </div>
+        <div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_21</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:91.3%;background:var(--warning);"></div>
+            </div>
+            <div class="sensor-val">0.636</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_20</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:90.4%;background:var(--warning);"></div>
+            </div>
+            <div class="sensor-val">0.629</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_2</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:87.1%;background:var(--warning);"></div>
+            </div>
+            <div class="sensor-val">0.607</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_17</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:87.1%;background:var(--warning);"></div>
+            </div>
+            <div class="sensor-val">0.606</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_3</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:84%;background:var(--warning);"></div>
+            </div>
+            <div class="sensor-val">0.585</div>
+          </div>
+        </div>
+        <div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_8</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:81%;background:var(--accent);"></div>
+            </div>
+            <div class="sensor-val">0.564</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_13</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:80.8%;background:var(--accent);"></div>
+            </div>
+            <div class="sensor-val">0.563</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_9</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:56%;background:var(--accent);"></div>
+            </div>
+            <div class="sensor-val">0.390</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_14</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:44%;background:var(--muted);"></div>
+            </div>
+            <div class="sensor-val">0.307</div>
+          </div>
+          <div class="sensor-row">
+            <div class="sensor-name">sensor_6</div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:18.4%;background:var(--muted);"></div>
+            </div>
+            <div class="sensor-val">0.128</div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- ── FOOTER ────────────────────────────────────────────────── -->
+    <footer>
+      <div class="footer-left">Turbofan Engine Predictive Maintenance &middot; NASA CMAPSS FD001 &middot; Priscilla
+        Nzula</div>
+      <div class="footer-right">
+        <a href="https://github.com/priscillanzula" target="_blank">github.com/priscillanzula</a>
+        &nbsp;&middot;&nbsp;
+        <a href="https://turbofan-predictive-maintenance-system.streamlit.app/" target="_blank">Live Streamlit App
+          &rarr;</a>
+      </div>
+    </footer>
+
   </div>
 
-  <!-- Lifespan histogram + critical table -->
-  <div class="grid-3-1">
-    <div class="card">
-      <div class="card-title">Engine lifespan distribution</div>
-      <div class="card-sub">Total cycles survived before failure &mdash; 100 training engines &middot; avg 206 cycles</div>
-      <div class="chart-wrap" style="height:220px;">
-        <canvas id="c-life"></canvas>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Critical engines</div>
-      <div class="card-sub">Lowest RUL &mdash; immediate action required</div>
-      <table>
-        <thead>
-          <tr><th>Engine</th><th>RUL</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>#34</td><td style="font-family:var(--font-mono);color:var(--danger);">7</td><td><span class="badge badge-d">DANGER</span></td></tr>
-          <tr><td>#31</td><td style="font-family:var(--font-mono);color:var(--danger);">8</td><td><span class="badge badge-d">DANGER</span></td></tr>
-          <tr><td>#81</td><td style="font-family:var(--font-mono);color:var(--danger);">8</td><td><span class="badge badge-d">DANGER</span></td></tr>
-          <tr><td>#68</td><td style="font-family:var(--font-mono);color:var(--danger);">8</td><td><span class="badge badge-d">DANGER</span></td></tr>
-          <tr><td>#82</td><td style="font-family:var(--font-mono);color:var(--danger);">9</td><td><span class="badge badge-d">DANGER</span></td></tr>
-          <tr><td>#76</td><td style="font-family:var(--font-mono);color:var(--danger);">10</td><td><span class="badge badge-d">DANGER</span></td></tr>
-          <tr><td>#42</td><td style="font-family:var(--font-mono);color:var(--danger);">10</td><td><span class="badge badge-d">DANGER</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── SECTION: MODEL INSIGHTS ──────────────────────────────── -->
-  <div class="section-label" style="margin-top:8px;">Model insights</div>
-
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-title">Sensor correlation with RUL</div>
-      <div class="card-sub">Absolute Pearson r &mdash; higher = more predictive of remaining life</div>
-      <div class="chart-wrap" style="height:320px;">
-        <canvas id="c-corr"></canvas>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Feature importance</div>
-      <div class="card-sub">Random Forest Gini importance &mdash; top 8 features</div>
-      <div class="chart-wrap" style="height:320px;">
-        <canvas id="c-imp"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Degradation line chart -->
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-title">Sensor degradation across engine life</div>
-    <div class="card-sub">Average reading at each life stage (0&ndash;100%) for 4 key sensors &mdash; training set, 100 engines. Sensor 7 &amp; 12 decrease; sensor 2 &amp; 11 increase as engines age.</div>
-    <div class="chart-wrap" style="height:240px;">
-      <canvas id="c-degrade"></canvas>
-    </div>
-  </div>
-
-  <!-- ── FINDINGS + RECOMMENDATIONS ───────────────────────────── -->
-  <div class="grid-2">
-    <!-- Findings -->
-    <div class="card">
-      <div class="card-title" style="margin-bottom:14px;">Key findings</div>
-
-      <div class="finding">
-        <div class="finding-num">01</div>
-        <div class="finding-body">
-          <div class="finding-title">Life stage is the dominant signal <span class="tag tag-p">94.5% importance</span></div>
-          <div class="finding-text">cycle_ratio alone drives 94.5% of the model&rsquo;s predictive power. No single raw sensor comes close. Where an engine is in its lifecycle matters far more than instantaneous readings.</div>
-        </div>
-      </div>
-
-      <div class="finding">
-        <div class="finding-num">02</div>
-        <div class="finding-body">
-          <div class="finding-title">7 sensors carry zero signal <span class="tag tag-d">drop</span></div>
-          <div class="finding-text">sensor_1, 5, 6, 10, 16, 18, 19 are constant across all 20,631 readings. Removing them cut model complexity with zero accuracy loss.</div>
-        </div>
-      </div>
-
-      <div class="finding">
-        <div class="finding-num">03</div>
-        <div class="finding-body">
-          <div class="finding-title">Pressure &amp; temperature degrade predictably <span class="tag tag-s">r = 0.70</span></div>
-          <div class="finding-text">sensor_11 (HPC static pressure, r = 0.696) and sensor_4 (LPT temperature, r = 0.679) show the strongest monotonic correlation with remaining life.</div>
-        </div>
-      </div>
-
-      <div class="finding">
-        <div class="finding-num">04</div>
-        <div class="finding-body">
-          <div class="finding-title">Wide lifespan variance across fleet <span class="tag tag-a">128&ndash;362 cycles</span></div>
-          <div class="finding-text">Engines vary enormously &mdash; shortest life 128 cycles, longest 362. Standard deviation of 46 cycles. This variance is exactly why predictive beats scheduled maintenance.</div>
-        </div>
-      </div>
-
-      <div class="finding">
-        <div class="finding-num">05</div>
-        <div class="finding-body">
-          <div class="finding-title">Model provides 3&ndash;4 week advance warning</div>
-          <div class="finding-text">With RMSE of 7.2 cycles and the danger threshold at 30 cycles, maintenance teams get a reliable window of ~23 cycles to plan and execute intervention before failure.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recommendations -->
-    <div class="card">
-      <div class="card-title" style="margin-bottom:14px;">Recommendations</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <div class="rec rec-d">
-          <div class="rec-title">Ground 25 engines immediately</div>
-          <div class="rec-body">Engines with RUL &lt; 30 cycles must be pulled from service. At $500k+ per unplanned failure, preventing a single incident recoups the entire cost of this system. Prioritise engines #34, #31, #81, #68 &mdash; all at RUL &le; 8.</div>
-        </div>
-        <div class="rec rec-w">
-          <div class="rec-title">Schedule 20 warning engines within one maintenance cycle</div>
-          <div class="rec-body">Monitor sensor_11 rolling average and sensor_7 rolling average &mdash; these are the earliest-moving degradation signals. Trigger alerts when either crosses 1.5 std dev from baseline.</div>
-        </div>
-        <div class="rec rec-s">
-          <div class="rec-title">Automate daily alerts via GitHub Actions</div>
-          <div class="rec-body">send_alerts.py is production-ready. Schedule it as a daily cron job (see AUTOMATION.md). This ensures no engine crosses the danger threshold between manual checks.</div>
-        </div>
-        <div class="rec rec-a">
-          <div class="rec-title">Extend model to FD002&ndash;FD004 for real-world generalisation</div>
-          <div class="rec-body">Current model is trained on one operating condition. FD002&ndash;FD004 add five more. Re-training with op_setting features would make the system fleet-ready for mixed operations.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── ALL SENSOR CORRELATIONS ───────────────────────────────── -->
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-title" style="margin-bottom:16px;">All sensor correlations with RUL</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0 24px;">
-      <div>
-        <div class="sensor-row"><div class="sensor-name">sensor_11</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--danger);"></div></div><div class="sensor-val">0.696</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_4</div><div class="bar-track"><div class="bar-fill" style="width:97.6%;background:var(--danger);"></div></div><div class="sensor-val">0.679</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_12</div><div class="bar-track"><div class="bar-fill" style="width:96.6%;background:var(--danger);"></div></div><div class="sensor-val">0.672</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_7</div><div class="bar-track"><div class="bar-fill" style="width:94.4%;background:var(--danger);"></div></div><div class="sensor-val">0.657</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_15</div><div class="bar-track"><div class="bar-fill" style="width:92.3%;background:var(--warning);"></div></div><div class="sensor-val">0.643</div></div>
-      </div>
-      <div>
-        <div class="sensor-row"><div class="sensor-name">sensor_21</div><div class="bar-track"><div class="bar-fill" style="width:91.3%;background:var(--warning);"></div></div><div class="sensor-val">0.636</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_20</div><div class="bar-track"><div class="bar-fill" style="width:90.4%;background:var(--warning);"></div></div><div class="sensor-val">0.629</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_2</div><div class="bar-track"><div class="bar-fill" style="width:87.1%;background:var(--warning);"></div></div><div class="sensor-val">0.607</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_17</div><div class="bar-track"><div class="bar-fill" style="width:87.1%;background:var(--warning);"></div></div><div class="sensor-val">0.606</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_3</div><div class="bar-track"><div class="bar-fill" style="width:84%;background:var(--warning);"></div></div><div class="sensor-val">0.585</div></div>
-      </div>
-      <div>
-        <div class="sensor-row"><div class="sensor-name">sensor_8</div><div class="bar-track"><div class="bar-fill" style="width:81%;background:var(--accent);"></div></div><div class="sensor-val">0.564</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_13</div><div class="bar-track"><div class="bar-fill" style="width:80.8%;background:var(--accent);"></div></div><div class="sensor-val">0.563</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_9</div><div class="bar-track"><div class="bar-fill" style="width:56%;background:var(--accent);"></div></div><div class="sensor-val">0.390</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_14</div><div class="bar-track"><div class="bar-fill" style="width:44%;background:var(--muted);"></div></div><div class="sensor-val">0.307</div></div>
-        <div class="sensor-row"><div class="sensor-name">sensor_6</div><div class="bar-track"><div class="bar-fill" style="width:18.4%;background:var(--muted);"></div></div><div class="sensor-val">0.128</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── FOOTER ────────────────────────────────────────────────── -->
-  <footer>
-    <div class="footer-left">Turbofan Engine Predictive Maintenance &middot; NASA CMAPSS FD001 &middot; Priscilla Nzula</div>
-    <div class="footer-right">
-      <a href="https://github.com/priscillanzula" target="_blank">github.com/priscillanzula</a>
-      &nbsp;&middot;&nbsp;
-      <a href="https://turbofan-predictive-maintenance-system.streamlit.app/" target="_blank">Live Streamlit App &rarr;</a>
-    </div>
-  </footer>
-
-</div>
-
-<!-- Dashboard script (loads after DOM is ready) -->
-<script src="dashboard.js"></script>
+  <!-- Dashboard script (loads after DOM is ready) -->
+  <script src="dashboard.js"></script>
 </body>
+
 </html>
