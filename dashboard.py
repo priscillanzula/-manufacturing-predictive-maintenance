@@ -18,11 +18,8 @@ st.set_page_config(
 )
 
 
-# SUPABASE CONNECTION
-SUPABASE_URL = os.environ.get(
-    "SUPABASE_URL", "https://tqspwjsofhkubzwddjqj.supabase.co")
-SUPABASE_KEY = os.environ.get(
-    "SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxc3B3anNvZmhrdWJ6d2RkanFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MDM5ODAsImV4cCI6MjA4ODk3OTk4MH0.5KMH4wIT_gOGAWPjiKjRU206NkY2Vu_7ly8ZlkYbdYE")
+SUPABASE_URL = st.secrets["supabase"]["url"]
+SUPABASE_KEY = st.secrets["supabase"]["key"]
 
 
 @st.cache_resource
@@ -123,9 +120,9 @@ model = load_model()
 
 
 # Header
-st.title("Turbofan Predictive Monitor")
+st.markdown("## ✈️ Turbofan Engine Health Monitoring System")
+st.caption("Real-time predictive maintenance dashboard powered by machine learning")
 st.markdown("""
-✈️ **Predictive Maintenance for Turbofan Engines**
 
 Unexpected engine failures cost airlines millions.  
 This dashboard uses live sensor data and machine learning to predict failures *before* they happen,  
@@ -149,15 +146,18 @@ if latest_readings.empty:
 
 # Compute health status for all engines
 
-conditions = [
-    latest_readings["RUL_capped"] < 30,
-    (latest_readings["RUL_capped"] >= 30) & (
-        latest_readings["RUL_capped"] < 80),
-    latest_readings["RUL_capped"] >= 80
-]
-choices = ["🔴 DANGER", "🟡 WARNING", "🟢 HEALTHY"]
-latest_readings["health_status"] = np.select(
-    conditions, choices, default="🟢 HEALTHY")
+if "health_status" not in latest_readings.columns:
+    conditions = [
+        latest_readings["RUL_capped"] < 30,
+        (latest_readings["RUL_capped"] >= 30) & (
+            latest_readings["RUL_capped"] < 80),
+        latest_readings["RUL_capped"] >= 80
+    ]
+    choices = ["🔴 DANGER", "🟡 WARNING", "🟢 HEALTHY"]
+    latest_readings["health_status"] = np.select(
+        conditions, choices, default="🟢 HEALTHY")
+latest_readings["health_status"] = latest_readings["health_status"].fillna(
+    "🟢 HEALTHY")
 
 total_engines = latest_readings["engine_id"].nunique()
 danger_count = (latest_readings["health_status"] == "🔴 DANGER").sum()
@@ -167,20 +167,31 @@ healthy_count = (latest_readings["health_status"] == "🟢 HEALTHY").sum()
 
 # Key metrics
 col1, col2, col3, col4 = st.columns(4)
+
 with col1:
-    st.metric("Total Engines Monitored", total_engines)
+    st.metric("Fleet Size", total_engines)
+
 with col2:
-    st.metric("🔴 DANGER (< 30 cycles)", int(danger_count),
-              delta="Immediate maintenance needed", delta_color="inverse")
+    st.metric(
+        "🔴 Critical",
+        int(danger_count),
+        delta=f"{int((danger_count/total_engines)*100)}% of fleet",
+        delta_color="inverse"
+    )
+
 with col3:
-    st.metric("🟡 WARNING (30–80 cycles)", int(warning_count),
-              delta="Schedule maintenance soon", delta_color="off")
+    st.metric(
+        "🟡 At Risk",
+        int(warning_count),
+        delta=f"{int((warning_count/total_engines)*100)}% of fleet"
+    )
+
 with col4:
-    st.metric("🟢 HEALTHY (80+ cycles)", int(healthy_count),
-              delta="Operating normally")
-
-st.markdown("---")
-
+    st.metric(
+        "🟢 Healthy",
+        int(healthy_count),
+        delta=f"{int((healthy_count/total_engines)*100)}% of fleet"
+    )
 # Fleet health overview
 
 st.subheader("Fleet Health Overview")
@@ -222,6 +233,15 @@ with col_right:
     fig_hist.add_vline(x=80, line_dash="dash", line_color="orange",
                        annotation_text="🟡 Warning (80)")
     st.plotly_chart(fig_hist, use_container_width=True)
+
+if danger_count > 0:
+    st.error(
+        f"🚨 CRITICAL ALERT: {danger_count} engines require immediate maintenance")
+elif warning_count > 0:
+    st.warning(
+        f"⚠️ WARNING: {warning_count} engines approaching failure window")
+else:
+    st.success("✅ All engines operating within safe limits")
 
 # Fleet summary
 st.markdown("---")
@@ -408,7 +428,7 @@ with st.sidebar:
         **Dataset:** NASA CMAPSS FD001  
         **Goal:** Predict engine Remaining Useful Life (RUL)
 
-        **Skills:**  
+        **Technologies used:**  
         - 🗄️ Supabase (live cloud database). 
         - 🐍 Python (pandas, numpy, sklearn).  
         - 📊 Data science (EDA, feature engineering, ML).  
@@ -448,7 +468,12 @@ with st.sidebar:
 # Footer
 
 st.markdown("---")
+
 st.caption("""
-Built with Python · Streamlit · Plotly · Supabase  
-Data: NASA PCOE CMAPSS FD001 · Model: Random Forest · Anomaly Detection: Isolation Forest
+✈️ **Turbofan Predictive Maintenance System**
+
+Built with **Python · Streamlit · Plotly · Supabase**  
+Model: Random Forest Regressor · Anomaly Detection: Isolation Logic  
+
+📊 Real-time monitoring · 🚨 Alerting · 🔧 Maintenance optimization  
 """)

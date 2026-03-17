@@ -1,74 +1,48 @@
-# ============================================================
-# FILE 1: Download the NASA Turbofan Engine Data
-# ============================================================
-#
-# BUSINESS PROBLEM:
-# Airlines and manufacturers spend millions fixing engines AFTER
-# they break down. If we could PREDICT when an engine will fail,
-# we can fix it BEFORE it breaks — saving money and lives.
-#
-# This file downloads the raw data we need from NASA's website.
-# Think of this as going to the library and picking up a book
-# before you can read it.
-#
-# WHAT THIS FILE DOES:
-# 1. Goes to NASA's website
-# 2. Finds the download links for the engine data
-# 3. Downloads and saves the files to your computer
-#
-# HOW TO RUN THIS FILE:
-# Open your terminal and type:  python 01_download_data.py
-# ============================================================
+# Business problem:
+# Airlines and manufacturers spend millions fixing engines after failures.
+# Predicting engine failures before they occur allows proactive maintenance,
+# reducing downtime, costs, and improving safety.
+
+# Objective of this file:
+# Download raw CMAPSS dataset (NASA PCOE) for turbofan engines.
+# Save files locally for further preprocessing and analysis.
 
 
-# --- STEP 1: Import tools we need ---
-# These are like apps on your phone — each one does a specific job
-
-import requests          # This lets Python browse websites (like a robot browser)
+# STEP 1: Import tools we need
+import requests
 import os               # This lets Python work with folders and files on your computer
 import zipfile          # This lets Python unzip compressed files
 from bs4 import BeautifulSoup  # This reads and understands HTML from websites
 
-print("=" * 60)
-print("STEP 1: Starting to download NASA engine data...")
-print("=" * 60)
 
-
-# --- STEP 2: Set up our folders ---
+# STEP 2: Set up our folders
 # We want to save everything in a neat folder called "data"
-
 data_folder = "data"   # The name of the folder we will save files into
 
 # Check if the folder already exists. If not, create it.
 if not os.path.exists(data_folder):
-    os.makedirs(data_folder)   # This is like making a new folder on your Desktop
+    os.makedirs(data_folder)
     print(f"Created folder: {data_folder}")
 else:
     print(f"Folder already exists: {data_folder}")
 
 
-# --- STEP 3: The direct download URL ---
+# STEP 3: The direct download URL
 # After checking NASA's PCOE page, the actual data file is here.
 # This is the CMAPSS (Commercial Modular Aero-Propulsion System Simulation) dataset.
 
-# NOTE TO BEGINNER: Sometimes websites block robots.
 # NASA provides a direct .zip file we can download safely.
 # The URL below is the actual dataset download link.
 
-download_url = "https://ti.arc.nasa.gov/c/6/"  # NASA CMAPSS dataset zip
+download_url = "https://ti.arc.nasa.gov/c/6/"
 
 # Because NASA's site may require a session, we will use a backup
 # approach: download from the UCI mirror which hosts the same data.
-# This is a common real-world scraping situation — always have a backup!
 
 backup_url = "https://raw.githubusercontent.com/hankroark/Turbofan-Engine-Degradation/master/CMAPSSData/train_FD001.txt"
 
-print("\nSCRAPING EXPLANATION:")
-print("We are acting like a web browser visiting NASA's page.")
-print("We read the page, find the download link, and save the file.")
 
-
-# --- STEP 4: Try to scrape the NASA page first ---
+# STEP 4: Try to scrape the NASA page first
 # We set headers to tell the website we are a normal browser
 # Some websites block requests that don't look like real browsers
 
@@ -80,11 +54,10 @@ print("\nVisiting NASA PCOE website to find data links...")
 
 try:
     # requests.get() = visit a web page
-    # This is like typing a URL into Chrome and pressing Enter
     response = requests.get(
         "https://ti.arc.nasa.gov/tech/dash/groups/pcoe/prognostic-data-repository/",
         headers=headers,
-        timeout=15  # Wait maximum 15 seconds before giving up
+        timeout=15  # maximum 15 seconds
     )
 
     # Check if the request worked (200 means SUCCESS in web language)
@@ -92,10 +65,8 @@ try:
         print("SUCCESS: Connected to NASA website!")
 
         # BeautifulSoup reads the HTML of the page
-        # Think of HTML as the "source code" of a webpage
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # Find all links on the page
         all_links = soup.find_all("a", href=True)
         print(f"Found {len(all_links)} links on the page")
 
@@ -106,7 +77,8 @@ try:
             link_href = link["href"].lower()
             if "turbofan" in link_text or "cmapss" in link_text or "cmapss" in link_href:
                 engine_links.append(link)
-                print(f"  FOUND relevant link: {link.text.strip()} -> {link['href']}")
+                print(
+                    f"  FOUND relevant link: {link.text.strip()} -> {link['href']}")
 
         if engine_links:
             print(f"\nFound {len(engine_links)} engine-related links!")
@@ -124,19 +96,16 @@ except Exception as e:
     print("Moving to backup download method...")
 
 
-# --- STEP 5: Download the actual data files ---
+# STEP 5: Download the actual data files
 # The CMAPSS dataset has 4 different engine scenarios (FD001 to FD004)
 # We will download each one separately from a reliable GitHub mirror
 
-print("\n" + "=" * 60)
-print("STEP 5: Downloading the 4 engine dataset files...")
-print("=" * 60)
 
 # These are the 4 training files + 4 test files + RUL (remaining useful life) files
-# FD001 = one operating condition, one fault mode (simplest)
+# FD001 = one operating condition, one fault mode
 # FD002 = six operating conditions, one fault mode
 # FD003 = one operating condition, two fault modes
-# FD004 = six operating conditions, two fault modes (most complex)
+# FD004 = six operating conditions, two fault modes
 
 base_github_url = "https://raw.githubusercontent.com/hankroark/Turbofan-Engine-Degradation/master/CMAPSSData/"
 
@@ -156,13 +125,13 @@ files_to_download = [
 ]
 
 # Also scrape the column name information from a public source
-# This is our actual "web scraping" demonstration for the project
 print("\nSCRAPING sensor column names from Wikipedia-style source...")
 
 sensor_info_url = "https://raw.githubusercontent.com/hankroark/Turbofan-Engine-Degradation/master/README.md"
 
 try:
-    sensor_response = requests.get(sensor_info_url, headers=headers, timeout=10)
+    sensor_response = requests.get(
+        sensor_info_url, headers=headers, timeout=10)
     if sensor_response.status_code == 200:
         print("SUCCESS: Scraped sensor descriptions from GitHub README!")
         # Save the scraped metadata
@@ -173,12 +142,13 @@ try:
             f.write(sensor_response.text)
         print(f"Saved scraped metadata to: {metadata_path}")
     else:
-        print(f"Could not scrape metadata: status {sensor_response.status_code}")
+        print(
+            f"Could not scrape metadata: status {sensor_response.status_code}")
 except Exception as e:
     print(f"Metadata scraping failed: {e}")
 
 
-# Now download each data file
+# Download each data file
 download_count = 0
 failed_count = 0
 
@@ -186,7 +156,6 @@ for filename in files_to_download:
     file_url = base_github_url + filename
     save_path = os.path.join(data_folder, filename)
 
-    # Skip if already downloaded (so we don't re-download every time we run this script)
     if os.path.exists(save_path):
         print(f"  SKIP (already downloaded): {filename}")
         download_count += 1
@@ -208,7 +177,8 @@ for filename in files_to_download:
             print(f"  SUCCESS: Saved {filename} ({file_size:,} bytes)")
             download_count += 1
         else:
-            print(f"  FAILED: {filename} returned status {file_response.status_code}")
+            print(
+                f"  FAILED: {filename} returned status {file_response.status_code}")
             failed_count += 1
 
     except Exception as e:
@@ -216,13 +186,10 @@ for filename in files_to_download:
         failed_count += 1
 
 
-# --- STEP 6: Create a column names file ---
-# The NASA data files have NO column headers — just numbers
+# STEP 6: Create a column names file
+# The NASA data files have NO column headers, just numbers
 # We manually define the column names based on the NASA documentation
 
-print("\n" + "=" * 60)
-print("STEP 6: Creating column names reference file...")
-print("=" * 60)
 
 # These are the official column names from NASA's CMAPSS documentation
 column_names = """# CMAPSS Dataset Column Names
@@ -274,10 +241,7 @@ with open(column_file_path, "w") as f:
 print(f"Saved column names reference to: {column_file_path}")
 
 
-# --- FINAL SUMMARY ---
-print("\n" + "=" * 60)
-print("DOWNLOAD SUMMARY")
-print("=" * 60)
+# Final summary
 print(f"Files downloaded successfully: {download_count}")
 print(f"Files failed: {failed_count}")
 print(f"All files saved in folder: ./{data_folder}/")
@@ -286,5 +250,5 @@ for f in sorted(os.listdir(data_folder)):
     size = os.path.getsize(os.path.join(data_folder, f))
     print(f"  {f:40s} {size:>10,} bytes")
 
-print("\nNEXT STEP: Run file 02_load_to_mysql.py")
+print("\nNEXT STEP: Run file load_to_mysql.py")
 print("           That file will read these .txt files and load them into MySQL")

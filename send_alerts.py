@@ -1,11 +1,6 @@
-# ============================================================
+
 # send_alerts.py
-# Checks Supabase for engines in danger zone and sends
-# an email alert to danielpriscilla61@gmail.com
-#
-# This script is run automatically by GitHub Actions every hour
-# You can also run it manually: python send_alerts.py
-# ============================================================
+# Checks Supabase for engines in danger zone and sends an email alert to danielpriscilla61@gmail.com
 
 import smtplib
 import os
@@ -14,30 +9,36 @@ from email.mime.multipart import MIMEMultipart
 from supabase import create_client
 from datetime import datetime
 
-# ============================================================
-# CREDENTIALS — stored as GitHub Secrets, not hardcoded
-# ============================================================
-SUPABASE_URL = os.environ.get(
-    "SUPABASE_URL", "https://tqspwjsofhkubzwddjqj.supabase.co")
-SUPABASE_KEY = os.environ.get(
-    "SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxc3B3anNvZmhrdWJ6d2RkanFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MDM5ODAsImV4cCI6MjA4ODk3OTk4MH0.5KMH4wIT_gOGAWPjiKjRU206NkY2Vu_7ly8ZlkYbdYE")
 
-# Gmail credentials — use an App Password, not your real password
-# Go to: Google Account > Security > 2-Step Verification > App Passwords
-GMAIL_ADDRESS = "danielpriscilla61@gmail.com"
-GMAIL_PASSWORD = os.environ.get(
-    "GMAIL_APP_PASSWORD", "your-gmail-app-password")
+# SECURE CONFIGURATION (NO FALLBACK SECRETS)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-ALERT_EMAIL_TO = "danielpriscilla61@gmail.com"
+GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS")
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 
-# ============================================================
+ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO")
+
+
+# FAIL FAST IF MISSING
+
+required_vars = {
+    "SUPABASE_URL": SUPABASE_URL,
+    "SUPABASE_KEY": SUPABASE_KEY,
+    "GMAIL_ADDRESS": GMAIL_ADDRESS,
+    "GMAIL_APP_PASSWORD": GMAIL_APP_PASSWORD,
+    "ALERT_EMAIL_TO": ALERT_EMAIL_TO
+}
+
+missing = [key for key, value in required_vars.items() if not value]
+
+if missing:
+    raise ValueError(f"Missing environment variables: {', '.join(missing)}")
+
 # CONNECT TO SUPABASE
-# ============================================================
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ============================================================
 # GET LATEST READING PER ENGINE
-# ============================================================
 print("Fetching latest engine readings from Supabase...")
 
 response = supabase.table("engine_readings") \
@@ -56,9 +57,7 @@ for row in data:
 
 latest_readings = list(latest.values())
 
-# ============================================================
 # IDENTIFY DANGER AND WARNING ENGINES
-# ============================================================
 danger_engines = [r for r in latest_readings if r["rul_capped"]
                   is not None and r["rul_capped"] < 30]
 warning_engines = [r for r in latest_readings if r["rul_capped"]
@@ -74,9 +73,7 @@ if not danger_engines and not anomaly_engines:
     print("No critical alerts. No email sent.")
     exit(0)
 
-# ============================================================
 # BUILD EMAIL
-# ============================================================
 now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
 danger_rows = ""
@@ -134,9 +131,8 @@ html_body = f"""
 </html>
 """
 
-# ============================================================
+
 # SEND EMAIL VIA GMAIL
-# ============================================================
 msg = MIMEMultipart("alternative")
 msg["Subject"] = f"🔴 Engine Alert: {len(danger_engines)} engines need immediate attention — {now}"
 msg["From"] = GMAIL_ADDRESS

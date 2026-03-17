@@ -1,48 +1,31 @@
-# ============================================================
-# FILE 2: Load the Downloaded Data into MySQL Database
-# ============================================================
-#
-# WHAT IS MYSQL?
-# MySQL is like a very organised Excel spreadsheet that can hold
-# millions of rows, is super fast, and multiple people can use
-# it at the same time. Companies use it to store their data.
-#
-# WHAT THIS FILE DOES:
-# 1. Connects to your MySQL database
-# 2. Creates tables (like sheets in Excel)
-# 3. Reads the .txt files we downloaded in File 1
-# 4. Inserts all the data into the tables
-#
-# BEFORE RUNNING THIS FILE:
-# - Make sure MySQL is installed and running on your computer
-# - Make sure you ran 01_download_data.py first
-# - Install needed packages: pip install mysql-connector-python pandas
-#
-# HOW TO RUN: python 02_load_to_mysql.py
-# ============================================================
 
-
-# --- STEP 1: Import the tools we need ---
-
+# import necessary libraries
 import mysql.connector   # Lets Python talk to MySQL
 import pandas as pd      # Pandas = Python's best tool for reading tables/spreadsheets
 import os                # For reading files from folders
 import sys               # For stopping the program cleanly if something goes wrong
 
-print("=" * 60)
-print("STEP 1: Starting database setup...")
-print("=" * 60)
+
+# Business problem:
+# Airlines and engine manufacturers collect large volumes of sensor data from engines.
+# Storing and organizing this data efficiently is critical to enable analysis, modeling, and predictive maintenance.
+# This file sets up a structured MySQL database to hold the raw engine sensor data, test labels, and metadata for downstream analysis.
+
+# Objective of this file:
+# Connect to MySQL database
+# Create tables: engines, sensor_readings, rul_labels
+# Load CMAPSS dataset (training + test + RUL labels)
+# Verify data integrity
 
 
-# --- STEP 2: Set up your database connection details ---
-# IMPORTANT: Change these to match YOUR MySQL installation
-# When you installed MySQL, you set a username and password
+#  Set up  database connection details
 # The default username is usually "root"
 
-DB_HOST     = "localhost"   # Where MySQL is running (localhost = your own computer)
-DB_USER     = "root"        # Your MySQL username
-DB_PASSWORD = "Kn@24068." # CHANGE THIS to your actual MySQL password
-DB_NAME     = "turbofan_db"  # The name of the database we will create
+# Where MySQL is running (localhost = your own computer)
+DB_HOST = "localhost"
+DB_USER = "root"        # MySQL username
+DB_PASSWORD = "Kn@24068."  # MySQL password
+DB_NAME = "turbofan_db"  # The name of the database to create
 
 print(f"Database settings:")
 print(f"  Host:     {DB_HOST}")
@@ -50,14 +33,13 @@ print(f"  User:     {DB_USER}")
 print(f"  Database: {DB_NAME}")
 
 
-# --- STEP 3: Connect to MySQL and create the database ---
+# Connect to MySQL and create the database
 # First we connect WITHOUT specifying a database (because it doesn't exist yet)
 
 print("\nConnecting to MySQL...")
 
 try:
     # Open a connection to MySQL
-    # This is like opening the door to the filing cabinet
     connection = mysql.connector.connect(
         host=DB_HOST,
         user=DB_USER,
@@ -88,18 +70,14 @@ except mysql.connector.Error as e:
     sys.exit(1)  # Stop the program
 
 
-# --- STEP 4: Create our tables ---
+# Create the tables
 # We need 3 main tables:
 # 1. engines      - one row per engine (like a list of all aircraft engines)
 # 2. sensor_readings - the actual sensor data recorded over time
 # 3. rul_labels   - the "answer" — how many cycles left each engine had at end of test
 
-print("\n" + "=" * 60)
-print("STEP 4: Creating database tables...")
-print("=" * 60)
 
 # SQL commands to create tables
-# Think of this like designing the columns of a spreadsheet BEFORE filling it in
 
 # TABLE 1: engines
 # Stores basic info about each engine and which dataset it came from
@@ -176,9 +154,9 @@ connection.commit()
 print("All tables are ready!")
 
 
-# --- STEP 5: Define column names ---
+# Define column names
 # The .txt files have no column headers, just space-separated numbers
-# We define the headers ourselves based on NASA documentation
+# We define the headers based on NASA documentation
 
 column_names = [
     "engine_id", "cycle",
@@ -193,12 +171,9 @@ column_names = [
 print(f"\nColumn names assigned: {len(column_names)} columns")
 
 
-# --- STEP 6: Load each training file into MySQL ---
+# Load each training file into MySQL
 # We have 4 training files: FD001, FD002, FD003, FD004
 
-print("\n" + "=" * 60)
-print("STEP 6: Loading training data into MySQL...")
-print("=" * 60)
 
 datasets = ["FD001", "FD002", "FD003", "FD004"]
 data_folder = "data"
@@ -223,7 +198,7 @@ for dataset_name in datasets:
         filepath,
         sep=r"\s+",        # split by whitespace (spaces)
         header=None,       # no header row in the file
-        names=column_names # use OUR column names
+        names=column_names  # use OUR column names
     )
 
     # Drop any completely empty columns (some files have trailing spaces)
@@ -241,7 +216,8 @@ for dataset_name in datasets:
             INSERT IGNORE INTO engines (engine_id, dataset, max_cycle)
             VALUES (%s, %s, %s)
         """
-        cursor.execute(insert_engine_sql, (row.engine_id, dataset_name, row.max_cycle))
+        cursor.execute(insert_engine_sql, (row.engine_id,
+                       dataset_name, row.max_cycle))
 
     connection.commit()
     print(f"  Loaded {len(engine_summary)} engines into 'engines' table")
@@ -300,15 +276,12 @@ for dataset_name in datasets:
         connection.commit()
         rows_loaded += len(batch)
 
-    print(f"  Loaded {rows_loaded:,} sensor readings into 'sensor_readings' table")
+    print(
+        f"  Loaded {rows_loaded:,} sensor readings into 'sensor_readings' table")
     total_rows_inserted += rows_loaded
 
 
-# --- STEP 7: Load RUL labels for test data ---
-print("\n" + "=" * 60)
-print("STEP 7: Loading RUL (Remaining Useful Life) labels...")
-print("=" * 60)
-
+# Load RUL labels for test data
 for dataset_name in datasets:
     filename = f"RUL_{dataset_name}.txt"
     filepath = os.path.join(data_folder, filename)
@@ -336,10 +309,7 @@ for dataset_name in datasets:
     print(f"  Loaded {len(rul_data)} RUL labels for {dataset_name}")
 
 
-# --- STEP 8: Verify the data was loaded correctly ---
-print("\n" + "=" * 60)
-print("STEP 8: Verifying data in MySQL...")
-print("=" * 60)
+# Verify the data was loaded correctly
 
 # Quick check — how many rows are in each table?
 cursor.execute("SELECT COUNT(*) FROM engines")
@@ -374,18 +344,15 @@ for row in rows:
     print(f"  {row[0]:<10} {row[1]:>10} {row[2]:>15,} {row[3]:>12} {row[4]:>12}")
 
 
-# --- STEP 9: Close the connection ---
+# Close the connection
 cursor.close()
 connection.close()
 print("\nDatabase connection closed.")
 
 
-# --- FINAL SUMMARY ---
-print("\n" + "=" * 60)
-print("LOAD COMPLETE!")
-print("=" * 60)
+# Summary
 print(f"Total sensor readings loaded: {total_rows_inserted:,}")
 print(f"Database name: {DB_NAME}")
 print(f"Tables created: engines, sensor_readings, rul_labels")
-print("\nNEXT STEP: Run file 03_sql_analysis.sql")
+print("\nNEXT STEP: Run file sql_analysis.sql")
 print("           Open it in MySQL Workbench to run all the SQL analysis queries")
