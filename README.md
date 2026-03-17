@@ -1,4 +1,4 @@
-# ✈️ Turbofan Engine Predictive Maintenance
+## ✈️ Turbofan Engine Predictive Maintenance
 
 A full-stack data science project that predicts when aircraft engines will need maintenance, using real NASA sensor data and a live cloud-connected dashboard.
 
@@ -7,7 +7,7 @@ A full-stack data science project that predicts when aircraft engines will need 
 
 ---
 
-## The Problem
+## Business Problem
 
 Unplanned engine failures cost airlines $500,000+ per incident. Traditional maintenance runs on fixed schedules rather than actual engine condition. This project builds a system that monitors live sensor data and flags engines before they reach a critical state.
 
