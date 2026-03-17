@@ -5,3 +5,4 @@ numpy
 plotly
 joblib
 supabase
+python-dotenv
