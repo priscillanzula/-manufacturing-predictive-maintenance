@@ -86,7 +86,7 @@ for r in critical_rows:
     )
 
 # ── READ TEMPLATE AND INJECT DATA ────────────────────────────────────────────
-template_path = os.path.join(os.path.dirname(__file__), "index.html")
+template_path = os.path.join(os.path.dirname(__file__), "docs", "index.html")
 with open(template_path, "r", encoding="utf-8") as f:
     html = f.read()
 
