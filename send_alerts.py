@@ -143,7 +143,7 @@ msg.attach(MIMEText(html_body, "html"))
 try:
     print("Sending alert email...")
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(GMAIL_ADDRESS, GMAIL_PASSWORD)
+        server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
         server.sendmail(GMAIL_ADDRESS, ALERT_EMAIL_TO, msg.as_string())
     print(f"Alert email sent to {ALERT_EMAIL_TO}")
 except Exception as e:
