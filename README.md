@@ -2,7 +2,8 @@
 
 A full-stack data science project that predicts when aircraft engines will need maintenance, using real NASA sensor data and a live cloud-connected dashboard.
 
-**[Live Demo →](https://turbofan-predictive-maintenance-system.streamlit.app/)**
+**[Live Demo →]([https://turbofan-predictive-maintenance-system.streamlit.app/](https://turbofan-predictive-maintenance-system.streamlit.app/))**
+
 
 ---
 
