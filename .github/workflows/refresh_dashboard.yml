@@ -11,30 +11,37 @@ on:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      # ── 1. Check out your repo ──────────────────────────────────────────
+      # ── 1. Check out repo ─────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
-      # ── 2. Set up Python ────────────────────────────────────────────────
+      # ── 2. Set up Python ──────────────────────────────────────────────────
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # ── 3. Install dependencies ─────────────────────────────────────────
+      # ── 3. Install dependencies ───────────────────────────────────────────
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-      # ── 4. Upload latest data to Supabase ───────────────────────────────
+      # ── 4. Upload latest data to Supabase ─────────────────────────────────
       - name: Upload data to Supabase
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python upload_to_supabase.py
 
-      # ── 5. Send email alerts for danger-zone engines ────────────────────
+      # ── 5. Send email alerts (non-fatal) ──────────────────────────────────
       - name: Send engine health alerts
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -43,19 +50,25 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
         run: python send_alerts.py
+        continue-on-error: true
 
-      # ── 6. Rebuild the static analytics dashboard ───────────────────────
+      # ── 6. Ensure docs/ folder exists ─────────────────────────────────────
+      - name: Ensure docs folder exists
+        run: mkdir -p docs
+
+      # ── 7. Regenerate the static analytics dashboard HTML ─────────────────
       - name: Regenerate analytics dashboard
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python generate_dashboard.py
 
-      # ── 7. Commit and push updated dashboard HTML ───────────────────────
+      # ── 8. Commit and push updated dashboard HTML ─────────────────────────
       - name: Commit updated dashboard
         run: |
           git config --global user.name  "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/index.html
-          git diff --cached --quiet || git commit -m "chore: auto-refresh analytics dashboard [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+          git diff --cached --quiet && echo "No changes to commit" || \
+            git commit -m "chore: auto-refresh analytics dashboard [$(date -u '+%Y-%m-%d %H:%M UTC')]"
           git push
