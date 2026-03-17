@@ -1,10 +1,7 @@
-# ============================================================
-# 06_dashboard.py — FINAL VERSION
-# Smart loading: fleet overview uses latest-per-engine only
-# Deep dive loads full history for selected engine on demand
-# HOW TO RUN: streamlit run 06_dashboard.py
-# ============================================================
 
+
+# import necessary libraries
+from streamlit_autorefresh import st_autorefresh
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -16,13 +13,12 @@ from supabase import create_client
 
 st.set_page_config(
     page_title="Engine Health Monitor",
-    page_icon="✈️",
+    page_icon="",
     layout="wide"
 )
 
-# ============================================================
+
 # SUPABASE CONNECTION
-# ============================================================
 SUPABASE_URL = os.environ.get(
     "SUPABASE_URL", "https://tqspwjsofhkubzwddjqj.supabase.co")
 SUPABASE_KEY = os.environ.get(
@@ -33,12 +29,9 @@ SUPABASE_KEY = os.environ.get(
 def get_supabase_client():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ============================================================
-# LOAD LATEST READING PER ENGINE (small fast query)
-# Used for: fleet overview, metrics, alert table, dropdown
-# Returns one row per engine — max 100 rows for FD001
-# ============================================================
 
+# Load latest reading for each engine, Used for: fleet overview, metrics, alert table, dropdown
+# This will return one row per engine — max 100 rows for FD001
 
 @st.cache_data(ttl=300)
 def load_latest_per_engine():
@@ -85,9 +78,8 @@ def load_latest_per_engine():
         st.error(f"Could not connect to Supabase: {e}")
         return pd.DataFrame()
 
-# ============================================================
-# LOAD FULL HISTORY FOR ONE ENGINE (on demand in deep dive)
-# ============================================================
+
+# load full history for one enegine (on demand in deep dive)
 
 
 @st.cache_data(ttl=300)
@@ -123,22 +115,22 @@ def load_model():
     return None
 
 
-# ============================================================
+# auto-refresh every 5 minutes (300000ms)
+st_autorefresh(interval=300_000, limit=None, key="auto_refresh")
 # LOAD DATA
-# ============================================================
 latest_readings = load_latest_per_engine()
 model = load_model()
 
-# ============================================================
-# HEADER
-# ============================================================
-st.title("✈️ Turbofan Engine Health Monitor")
-st.markdown("""
-**Business Problem:** Airlines and manufacturers lose millions when engines fail unexpectedly.
-This dashboard uses live sensor data and machine learning to predict engine failures
-*before* they happen, enabling proactive maintenance that saves cost and prevents catastrophic failures.
-""")
 
+# Header
+st.title("Turbofan Predictive Monitor")
+st.markdown("""
+✈️ **Predictive Maintenance for Turbofan Engines**
+
+Unexpected engine failures cost airlines millions.  
+This dashboard uses live sensor data and machine learning to predict failures *before* they happen,  
+enabling proactive maintenance that saves money and prevents catastrophic downtime.
+""")
 col_refresh, col_time = st.columns([1, 4])
 with col_refresh:
     if st.button("🔄 Refresh Data"):
@@ -154,9 +146,9 @@ if latest_readings.empty:
     st.error("No data available. Please run upload_to_supabase.py to load your data.")
     st.stop()
 
-# ============================================================
-# COMPUTE HEALTH STATUS FOR ALL ENGINES
-# ============================================================
+
+# Compute health status for all engines
+
 conditions = [
     latest_readings["RUL_capped"] < 30,
     (latest_readings["RUL_capped"] >= 30) & (
@@ -172,12 +164,11 @@ danger_count = (latest_readings["health_status"] == "🔴 DANGER").sum()
 warning_count = (latest_readings["health_status"] == "🟡 WARNING").sum()
 healthy_count = (latest_readings["health_status"] == "🟢 HEALTHY").sum()
 
-# ============================================================
-# KEY METRICS
-# ============================================================
+
+# Key metrics
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("🛩️ Total Engines Monitored", total_engines)
+    st.metric("Total Engines Monitored", total_engines)
 with col2:
     st.metric("🔴 DANGER (< 30 cycles)", int(danger_count),
               delta="Immediate maintenance needed", delta_color="inverse")
@@ -190,10 +181,9 @@ with col4:
 
 st.markdown("---")
 
-# ============================================================
-# FLEET HEALTH OVERVIEW
-# ============================================================
-st.subheader("🏥 Fleet Health Overview")
+# Fleet health overview
+
+st.subheader("Fleet Health Overview")
 col_left, col_right = st.columns(2)
 
 with col_left:
@@ -233,11 +223,9 @@ with col_right:
                        annotation_text="🟡 Warning (80)")
     st.plotly_chart(fig_hist, use_container_width=True)
 
-# ============================================================
-# FLEET SUMMARY TABLE — ALL ENGINES
-# ============================================================
+# Fleet summary
 st.markdown("---")
-st.subheader("📋 Full Fleet Summary — All 100 Engines")
+st.subheader("Full Fleet Summary ")
 st.markdown(
     "Every engine in the fleet sorted by urgency. Use this as your daily work order.")
 
@@ -254,6 +242,8 @@ summary["Action"] = summary["Status"].map({
 
 
 def style_status(val):
+    # noqa: F401
+    # pylint: disable=unused-argument
     if "DANGER" in str(val):
         return "background-color:#fadbd8; color:#922b21; font-weight:bold"
     elif "WARNING" in str(val):
@@ -276,13 +266,12 @@ st.download_button(
     mime="text/csv"
 )
 
-# ============================================================
-# INDIVIDUAL ENGINE DEEP DIVE
-# All 100 engines are in the dropdown, health status shown
-# Full sensor history loaded only when engine is selected
-# ============================================================
+
+# Indivindual engine deep dive
+# All 100 engines are in the dropdown, health status shown and full sensor history loaded only when engine is selected
+
 st.markdown("---")
-st.subheader("🔍 Individual Engine Deep Dive")
+st.subheader("Individual Engine Deep Dive")
 st.markdown(
     "Select any engine to see its full sensor history, RUL degradation and anomaly detections.")
 
@@ -355,7 +344,7 @@ fig_gauge.update_layout(height=300, margin=dict(t=60, b=20))
 st.plotly_chart(fig_gauge, use_container_width=True)
 
 # RUL Degradation chart
-st.subheader(f"📉 RUL Degradation — Engine {selected_engine}")
+st.subheader(f"RUL Degradation {selected_engine}")
 fig_rul = px.line(
     engine_data, x="cycle", y="RUL_capped",
     title=f"How Engine {selected_engine}'s Remaining Life Decreased Over {total_cycles_lived} Cycles",
@@ -373,7 +362,7 @@ st.caption(
     "A steeper slope means faster degradation. Sudden drops may indicate a developing fault.")
 
 # Sensor trend chart
-st.subheader(f"📊 Sensor Trends — Engine {selected_engine}")
+st.subheader(f"Sensor Trends {selected_engine}")
 sensor_options = {
     "Sensor 2 (Temperature)":       "sensor_2",
     "Sensor 7 (Pressure)":          "sensor_7",
@@ -408,52 +397,58 @@ if available_sensors:
     st.caption(f"Red X = anomalous reading. Engine {selected_engine} has "
                f"{anomaly_count_eng} anomalous readings out of {len(engine_data)} total.")
 
-# ============================================================
-# SIDEBAR
-# ============================================================
+
+# Sidebar
+
 with st.sidebar:
-    st.markdown("## 📋 Project Info")
-    st.markdown("""
-    **Project:** Turbofan Engine Predictive Maintenance
+    # --- Project Info (Collapsible) ---
+    with st.expander("Project Info", expanded=True):
+        st.markdown("""
+        **Project:** Turbofan Engine Predictive Maintenance  
+        **Dataset:** NASA CMAPSS FD001  
+        **Goal:** Predict engine Remaining Useful Life (RUL)
 
-    **Dataset:** NASA CMAPSS FD001
+        **Skills:**  
+        - 🗄️ Supabase (live cloud database). 
+        - 🐍 Python (pandas, numpy, sklearn).  
+        - 📊 Data science (EDA, feature engineering, ML).  
+        - 🚨 Automated email alerts via Gmail.  
+        - ☁️ Streamlit Community Cloud deployment.
 
-    **Skills demonstrated:**
-    - 🗄️ Supabase (live cloud database)
-    - 🐍 Python (pandas, numpy, sklearn)
-    - 📊 Data science (EDA, feature engineering, ML)
-    - 🚨 Automated email alerts via Gmail
-    - ☁️ Streamlit Community Cloud deployment
-    ---
-    **Model:** Random Forest Regressor
+        **Model:** Random Forest Regressor.
+        """)
 
-    **Goal:** Predict engine Remaining Useful Life (RUL)
-    """)
     st.markdown("---")
-    st.markdown("## ⚙️ Live Stats")
-    st.markdown(f"""
-    - **Engines monitored:** {total_engines}
-    - **🔴 Danger:** {int(danger_count)}
-    - **🟡 Warning:** {int(warning_count)}
-    - **🟢 Healthy:** {int(healthy_count)}
-    - **Data source:** Supabase (live)
-    """)
-    if danger_count > 0:
-        st.error(f"🔴 {int(danger_count)} engine(s) need immediate attention!")
-    if warning_count > 0:
-        st.warning(f"🟡 {int(warning_count)} engine(s) need maintenance soon.")
-    if danger_count == 0 and warning_count == 0:
-        st.success("✅ All engines healthy.")
-    if model:
-        st.success("✅ ML Model loaded")
-    else:
-        st.warning("⚠️ No model found.")
 
-# ============================================================
-# FOOTER
-# ============================================================
+    # --- Live Stats (Collapsible) ---
+    with st.expander("⚙️ Live Stats", expanded=True):
+        st.metric("Engines monitored", total_engines)
+        st.metric("🔴 Danger", int(danger_count))
+        st.metric("🟡 Warning", int(warning_count))
+        st.metric("🟢 Healthy", int(healthy_count))
+        st.markdown("**Data source:** Supabase (live)")
+
+        # Conditional alerts
+        if danger_count > 0:
+            st.error(
+                f"🔴 {int(danger_count)} engine(s) need immediate attention!")
+        elif warning_count > 0:
+            st.warning(
+                f"🟡 {int(warning_count)} engine(s) need maintenance soon.")
+        else:
+            st.success("✅ All engines healthy.")
+
+        # Model status
+        if model:
+            st.success("✅ ML Model loaded")
+        else:
+            st.warning("⚠️ No model found.")
+
+
+# Footer
+
 st.markdown("---")
-st.markdown("""
-*Built with Python · Streamlit · Plotly · Supabase*  
-*Data: NASA PCOE CMAPSS FD001 · Model: Random Forest · Anomaly: Isolation Forest*
+st.caption("""
+Built with Python · Streamlit · Plotly · Supabase  
+Data: NASA PCOE CMAPSS FD001 · Model: Random Forest · Anomaly Detection: Isolation Forest
 """)
