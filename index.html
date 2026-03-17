@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turbofan Engine Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --surface: #12161f;
+    --surface2: #1a1f2e;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --accent: #4f9cf9;
+    --danger: #f04444;
+    --warning: #f5a623;
+    --success: #3ecf8e;
+    --purple: #a78bfa;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* GRID NOISE BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(79,156,249,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79,156,249,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .page { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* HEADER */
+  header {
+    padding: 36px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .header-left {}
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: var(--font-head);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  h1 span { color: var(--accent); }
+  .header-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .header-right { text-align: right; }
+  .last-updated { font-size: 11px; color: var(--muted); }
+  .live-dot {
+    display: inline-block; width: 7px; height: 7px;
+    background: var(--success); border-radius: 50%;
+    margin-right: 5px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(0.8)} }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* KPI STRIP */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0,1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .kpi {
+    background: var(--surface);
+    padding: 18px 16px;
+    transition: background 0.2s;
+  }
+  .kpi:hover { background: var(--surface2); }
+  .kpi-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .kpi-val {
+    font-family: var(--font-head);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .kpi-val.d { color: var(--danger); }
+  .kpi-val.w { color: var(--warning); }
+  .kpi-val.s { color: var(--success); }
+  .kpi-val.a { color: var(--accent); }
+  .kpi-val.p { color: var(--purple); }
+  .kpi-sub { font-size: 10px; color: var(--muted); }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; margin-bottom: 16px; }
+  .grid-3-1 { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 16px; margin-bottom: 16px; }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .card-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* FINDINGS */
+  .finding {
+    display: flex;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .finding:last-child { border-bottom: none; padding-bottom: 0; }
+  .finding-num {
+    font-family: var(--font-head);
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 20px;
+    padding-top: 1px;
+    opacity: 0.6;
+  }
+  .finding-body { flex: 1; }
+  .finding-title { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+  .finding-text { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .tag-d { background: rgba(240,68,68,0.15); color: var(--danger); }
+  .tag-s { background: rgba(62,207,142,0.15); color: var(--success); }
+  .tag-a { background: rgba(79,156,249,0.15); color: var(--accent); }
+  .tag-p { background: rgba(167,139,250,0.15); color: var(--purple); }
+
+  /* REC CARDS */
+  .rec {
+    border-radius: 10px;
+    padding: 16px 18px;
+    border: 1px solid;
+  }
+  .rec-d { background: rgba(240,68,68,0.06); border-color: rgba(240,68,68,0.2); }
+  .rec-w { background: rgba(245,166,35,0.06); border-color: rgba(245,166,35,0.2); }
+  .rec-s { background: rgba(62,207,142,0.06); border-color: rgba(62,207,142,0.2); }
+  .rec-a { background: rgba(79,156,249,0.06); border-color: rgba(79,156,249,0.2); }
+  .rec-title {
+    font-family: var(--font-head);
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .rec-d .rec-title { color: var(--danger); }
+  .rec-w .rec-title { color: var(--warning); }
+  .rec-s .rec-title { color: var(--success); }
+  .rec-a .rec-title { color: var(--accent); }
+  .rec-body { font-size: 11px; color: var(--muted); line-height: 1.55; }
+
+  /* SENSOR TABLE */
+  .sensor-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 44px;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .sensor-row:last-child { border-bottom: none; }
+  .sensor-name { font-size: 11px; color: var(--muted); }
+  .bar-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .sensor-val { font-size: 11px; color: var(--text); text-align: right; font-family: var(--font-mono); }
+
+  /* DANGER TABLE */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 0 0 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+  }
+  .badge-d { background: rgba(240,68,68,0.15); color: var(--danger); }
+  .badge-w { background: rgba(245,166,35,0.15); color: var(--warning); }
+  .badge-s { background: rgba(62,207,142,0.15); color: var(--success); }
+
+  /* FOOTER */
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-left { font-size: 11px; color: var(--muted); }
+  .footer-right { font-size: 11px; color: var(--muted); }
+  .footer-right a { color: var(--accent); text-decoration: none; }
+  .footer-right a:hover { text-decoration: underline; }
+
+  /* ANIMATIONS */
+  .fade-in { animation: fadeIn 0.5s ease both; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+  .card { animation: fadeIn 0.4s ease both; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .kpi-strip { grid-template-columns: repeat(4, 1fr); }
+    .grid-2, .grid-3, .grid-3-1 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="header-left">
+      <div class="eyebrow">✈ Predictive Maintenance System</div>
+      <h1>Turbofan Engine <span>Analytics</span></h1>
+      <div class="header-sub">NASA CMAPSS FD001 · Random Forest R² 0.969 · 100 engines monitored</div>
+    </div>
+    <div class="header-right">
+      <div class="last-updated"><span class="live-dot"></span>Static snapshot — see automation guide to refresh</div>
+      <div class="last-updated" style="margin-top:4px" id="ts"></div>
+    </div>
+  </header>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="kpi-label">Engines</div>
+      <div class="kpi-val a">100</div>
+      <div class="kpi-sub">FD001 test</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Danger</div>
+      <div class="kpi-val d">25</div>
+      <div class="kpi-sub">RUL &lt; 30</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Warning</div>
+      <div class="kpi-val w">20</div>
+      <div class="kpi-sub">RUL 30–80</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Healthy</div>
+      <div class="kpi-val s">55</div>
+      <div class="kpi-sub">RUL &gt; 80</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Model R²</div>
+      <div class="kpi-val p">0.969</div>
+      <div class="kpi-sub">Random Forest</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">RMSE</div>
+      <div class="kpi-val a">7.2</div>
+      <div class="kpi-sub">cycles avg err</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Avg RUL</div>
+      <div class="kpi-val w">75.5</div>
+      <div class="kpi-sub">fleet average</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Min RUL</div>
+      <div class="kpi-val d">7</div>
+      <div class="kpi-sub">Engine #34</div>
+    </div>
+  </div>
+
+  <!-- ROW 1: fleet donut + RUL distribution -->
+  <div class="section-label">Fleet health overview</div>
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-title">Fleet health distribution</div>
+      <div class="card-sub">100 engines by remaining useful life status</div>
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="chart-wrap" style="height:200px;width:200px;flex-shrink:0;"><canvas id="c-donut"></canvas></div>
+        <div style="flex:1;">
+          <div style="margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Danger — RUL &lt; 30</div>
+            <div style="font-size:20px;font-family:var(--font-head);font-weight:700;color:var(--danger);">25 <span style="font-size:13px;font-weight:400;color:var(--muted);">engines</span></div>
+            <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;"><div style="height:100%;width:25%;background:var(--danger);border-radius:2px;"></div></div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Warning — RUL 30–80</div>
+            <div style="font-size:20px;font-family:var(--font-head);font-weight:700;color:var(--warning);">20 <span style="font-size:13px;font-weight:400;color:var(--muted);">engines</span></div>
+            <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;"><div style="height:100%;width:20%;background:var(--warning);border-radius:2px;"></div></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Healthy — RUL &gt; 80</div>
+            <div style="font-size:20px;font-family:var(--font-head);font-weight:700;color:var(--success);">55 <span style="font-size:13px;font-weight:400;color:var(--muted);">engines</span></div>
+            <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;"><div style="height:100%;width:55%;background:var(--success);border-radius:2px;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">RUL distribution across fleet</div>
+      <div class="card-sub">How many cycles remaining per engine group</div>
+      <div class="chart-wrap" style="height:220px;"><canvas id="c-rul-dist"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: life histogram + danger table -->
+  <div class="grid-3-1" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-title">Engine lifespan distribution</div>
+      <div class="card-sub">Total cycles survived before failure — 100 training engines · avg 206 cycles</div>
+      <div class="chart-wrap" style="height:220px;"><canvas id="c-life"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Critical engines</div>
+      <div class="card-sub">Lowest RUL — immediate action</div>
+      <table>
+        <thead><tr><th>Engine</th><th>RUL</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>#34</td><td style="font-family:var(--font-mono);color:var(--danger);">7</td><td><span class="badge badge-d">DANGER</span></td></tr>
+          <tr><td>#31</td><td style="font-family:var(--font-mono);color:var(--danger);">8</td><td><span class="badge badge-d">DANGER</span></td></tr>
+          <tr><td>#81</td><td style="font-family:var(--font-mono);color:var(--danger);">8</td><td><span class="badge badge-d">DANGER</span></td></tr>
+          <tr><td>#68</td><td style="font-family:var(--font-mono);color:var(--danger);">8</td><td><span class="badge badge-d">DANGER</span></td></tr>
+          <tr><td>#82</td><td style="font-family:var(--font-mono);color:var(--danger);">9</td><td><span class="badge badge-d">DANGER</span></td></tr>
+          <tr><td>#76</td><td style="font-family:var(--font-mono);color:var(--danger);">10</td><td><span class="badge badge-d">DANGER</span></td></tr>
+          <tr><td>#42</td><td style="font-family:var(--font-mono);color:var(--danger);">10</td><td><span class="badge badge-d">DANGER</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROW 3: sensor corr + feature importance -->
+  <div class="section-label" style="margin-top:8px;">Model insights</div>
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-title">Sensor correlation with RUL</div>
+      <div class="card-sub">Absolute Pearson r — higher = more predictive of remaining life</div>
+      <div class="chart-wrap" style="height:320px;"><canvas id="c-corr"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Feature importance</div>
+      <div class="card-sub">Random Forest Gini importance — top 8 features</div>
+      <div class="chart-wrap" style="height:320px;"><canvas id="c-imp"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 4: degradation line chart -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title">Sensor degradation across engine life</div>
+    <div class="card-sub">Average reading at each life stage (0–100%) for 4 key sensors — training set, 100 engines. Sensor 7 & 12 decrease; sensor 2 & 11 increase as engines age.</div>
+    <div class="chart-wrap" style="height:240px;"><canvas id="c-degrade"></canvas></div>
+  </div>
+
+  <!-- ROW 5: findings + recommendations -->
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">Key findings</div>
+      <div class="finding">
+        <div class="finding-num">01</div>
+        <div class="finding-body">
+          <div class="finding-title">Life stage is the dominant signal <span class="tag tag-p">94.5% importance</span></div>
+          <div class="finding-text">cycle_ratio alone drives 94.5% of the model's predictive power. No single raw sensor comes close. Where an engine is in its lifecycle matters far more than instantaneous readings.</div>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="finding-num">02</div>
+        <div class="finding-body">
+          <div class="finding-title">7 sensors carry zero signal <span class="tag tag-d">drop</span></div>
+          <div class="finding-text">sensor_1, 5, 6, 10, 16, 18, 19 are constant across all 20,631 readings. Removing them cut model complexity with zero accuracy loss.</div>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="finding-num">03</div>
+        <div class="finding-body">
+          <div class="finding-title">Pressure & temperature degrade predictably <span class="tag tag-s">r = 0.70</span></div>
+          <div class="finding-text">sensor_11 (HPC static pressure, r = 0.696) and sensor_4 (LPT temperature, r = 0.679) show the strongest monotonic correlation with remaining life.</div>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="finding-num">04</div>
+        <div class="finding-body">
+          <div class="finding-title">High lifespan variance across fleet <span class="tag tag-a">128–362 cycles</span></div>
+          <div class="finding-text">Engines vary enormously — shortest life 128 cycles, longest 362. Standard deviation of 46 cycles. This variance is exactly why predictive beats scheduled maintenance.</div>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="finding-num">05</div>
+        <div class="finding-body">
+          <div class="finding-title">Model provides 3–4 week advance warning</div>
+          <div class="finding-text">With RMSE of 7.2 cycles and the danger threshold at 30 cycles, maintenance teams get a reliable window of ~23 cycles to plan and execute intervention before failure.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px;">Recommendations</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="rec rec-d">
+          <div class="rec-title">Ground 25 engines immediately</div>
+          <div class="rec-body">Engines with RUL &lt; 30 cycles must be pulled from service. At $500k+ per unplanned failure, preventing a single incident recoups the entire cost of this system. Prioritise engines #34, #31, #81, #68 — all at RUL ≤ 8.</div>
+        </div>
+        <div class="rec rec-w">
+          <div class="rec-title">Schedule 20 warning engines within one maintenance cycle</div>
+          <div class="rec-body">Monitor sensor_11 rolling average and sensor_7 rolling average — these are the earliest-moving degradation signals. Trigger alerts when either crosses 1.5 std dev from its baseline.</div>
+        </div>
+        <div class="rec rec-s">
+          <div class="rec-title">Automate daily alerts via GitHub Actions</div>
+          <div class="rec-body">send_alerts.py is production-ready. Schedule it as a daily cron job (see AUTOMATION.md). This ensures no engine crosses the danger threshold between manual checks.</div>
+        </div>
+        <div class="rec rec-a">
+          <div class="rec-title">Extend model to FD002–FD004 for real-world generalisation</div>
+          <div class="rec-body">Current model is trained on one operating condition. FD002–FD004 add five more. Re-training with op_setting features as inputs would make the system fleet-ready for mixed operations.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SENSOR CORRELATION TABLE -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-title" style="margin-bottom:16px;">All sensor correlations with RUL</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0 24px;">
+      <div>
+        <div class="sensor-row"><div class="sensor-name">sensor_11</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--danger);"></div></div><div class="sensor-val">0.696</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_4</div><div class="bar-track"><div class="bar-fill" style="width:97.6%;background:var(--danger);"></div></div><div class="sensor-val">0.679</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_12</div><div class="bar-track"><div class="bar-fill" style="width:96.6%;background:var(--danger);"></div></div><div class="sensor-val">0.672</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_7</div><div class="bar-track"><div class="bar-fill" style="width:94.4%;background:var(--danger);"></div></div><div class="sensor-val">0.657</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_15</div><div class="bar-track"><div class="bar-fill" style="width:92.3%;background:var(--warning);"></div></div><div class="sensor-val">0.643</div></div>
+      </div>
+      <div>
+        <div class="sensor-row"><div class="sensor-name">sensor_21</div><div class="bar-track"><div class="bar-fill" style="width:91.3%;background:var(--warning);"></div></div><div class="sensor-val">0.636</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_20</div><div class="bar-track"><div class="bar-fill" style="width:90.4%;background:var(--warning);"></div></div><div class="sensor-val">0.629</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_2</div><div class="bar-track"><div class="bar-fill" style="width:87.1%;background:var(--warning);"></div></div><div class="sensor-val">0.607</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_17</div><div class="bar-track"><div class="bar-fill" style="width:87.1%;background:var(--warning);"></div></div><div class="sensor-val">0.606</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_3</div><div class="bar-track"><div class="bar-fill" style="width:84%;background:var(--warning);"></div></div><div class="sensor-val">0.585</div></div>
+      </div>
+      <div>
+        <div class="sensor-row"><div class="sensor-name">sensor_8</div><div class="bar-track"><div class="bar-fill" style="width:81%;background:var(--accent);"></div></div><div class="sensor-val">0.564</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_13</div><div class="bar-track"><div class="bar-fill" style="width:80.8%;background:var(--accent);"></div></div><div class="sensor-val">0.563</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_9</div><div class="bar-track"><div class="bar-fill" style="width:56%;background:var(--accent);"></div></div><div class="sensor-val">0.390</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_14</div><div class="bar-track"><div class="bar-fill" style="width:44%;background:var(--muted);"></div></div><div class="sensor-val">0.307</div></div>
+        <div class="sensor-row"><div class="sensor-name">sensor_6</div><div class="bar-track"><div class="bar-fill" style="width:18.4%;background:var(--muted);"></div></div><div class="sensor-val">0.128</div></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-left">Turbofan Engine Predictive Maintenance · NASA CMAPSS FD001 · Priscilla Nzula</div>
+    <div class="footer-right">
+      <a href="https://github.com/priscillanzula" target="_blank">github.com/priscillanzula</a>
+      &nbsp;·&nbsp;
+      <a href="https://turbofan-predictive-maintenance-system.streamlit.app/" target="_blank">Live Streamlit App →</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+document.getElementById('ts').textContent = 'Generated ' + new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+
+const gridColor = 'rgba(255,255,255,0.05)';
+const tickColor = '#6b7280';
+const base = { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } };
+
+// Donut
+new Chart(document.getElementById('c-donut'), {
+  type: 'doughnut',
+  data: { labels:['Danger','Warning','Healthy'], datasets:[{ data:[25,20,55], backgroundColor:['#f04444','#f5a623','#3ecf8e'], borderWidth:0, hoverOffset:6 }] },
+  options: { ...base, cutout:'68%', plugins:{ legend:{ display:false } } }
+});
+
+// RUL distribution
+new Chart(document.getElementById('c-rul-dist'), {
+  type: 'bar',
+  data: {
+    labels: ['0–15','15–30','30–45','45–60','60–80','80–100','100–120','120–145'],
+    datasets: [{
+      data: [9,16,3,11,6,21,21,13],
+      backgroundColor: ['#f04444','#f04444','#f5a623','#f5a623','#f5a623','#3ecf8e','#3ecf8e','#3ecf8e'],
+      borderRadius: 4, borderSkipped: false
+    }]
+  },
+  options: { ...base, scales: {
+    x: { ticks:{ color:tickColor, font:{size:10} }, grid:{ display:false } },
+    y: { ticks:{ color:tickColor, font:{size:10}, stepSize:5 }, grid:{ color:gridColor }, title:{ display:true, text:'engines', color:tickColor, font:{size:10} } }
+  }}
+});
+
+// Life histogram
+new Chart(document.getElementById('c-life'), {
+  type: 'bar',
+  data: {
+    labels: ['125–150','150–175','175–200','200–225','225–250','250–275','275–300','300–325','325–350','350–375'],
+    datasets: [{ data:[6,19,27,22,9,6,7,1,2,1], backgroundColor:'#4f9cf9', borderRadius:4, borderSkipped:false }]
+  },
+  options: { ...base, scales: {
+    x: { ticks:{ color:tickColor, font:{size:9}, maxRotation:45 }, grid:{ display:false } },
+    y: { ticks:{ color:tickColor, font:{size:10}, stepSize:5 }, grid:{ color:gridColor }, title:{ display:true, text:'engines', color:tickColor, font:{size:10} } }
+  }}
+});
+
+// Sensor correlations
+new Chart(document.getElementById('c-corr'), {
+  type: 'bar',
+  data: {
+    labels: ['sensor_11','sensor_4','sensor_12','sensor_7','sensor_15','sensor_21','sensor_20','sensor_2','sensor_17','sensor_3','sensor_8','sensor_13','sensor_9','sensor_14','sensor_6'],
+    datasets: [{
+      data: [0.696,0.679,0.672,0.657,0.643,0.636,0.629,0.607,0.606,0.585,0.564,0.563,0.390,0.307,0.128],
+      backgroundColor: [
+        '#f04444','#f04444','#f04444','#f04444',
+        '#f5a623','#f5a623','#f5a623','#f5a623','#f5a623','#f5a623',
+        '#4f9cf9','#4f9cf9','#6b7280','#6b7280','#6b7280'
+      ],
+      borderRadius: 3, borderSkipped: false
+    }]
+  },
+  options: { ...base, indexAxis:'y', scales: {
+    x: { min:0, max:0.8, ticks:{ color:tickColor, font:{size:10} }, grid:{ color:gridColor } },
+    y: { ticks:{ color:tickColor, font:{size:10} }, grid:{ display:false } }
+  }}
+});
+
+// Feature importance
+new Chart(document.getElementById('c-imp'), {
+  type: 'bar',
+  data: {
+    labels: ['cycle_ratio','s7_roll_avg','s2_roll_avg','s2_roll_std','s12_roll_std','s12_roll_avg','s11_roll_avg','s7_roll_std'],
+    datasets: [{
+      data: [94.54,0.650,0.601,0.552,0.516,0.503,0.499,0.497],
+      backgroundColor: ['#a78bfa','#3ecf8e','#3ecf8e','#3ecf8e','#3ecf8e','#3ecf8e','#3ecf8e','#3ecf8e'],
+      borderRadius: 3, borderSkipped: false
+    }]
+  },
+  options: { ...base, indexAxis:'y', scales: {
+    x: { ticks:{ color:tickColor, font:{size:10}, callback: v => v.toFixed(1)+'%' }, grid:{ color:gridColor } },
+    y: { ticks:{ color:tickColor, font:{size:10} }, grid:{ display:false } }
+  }, plugins:{ tooltip:{ callbacks:{ label: ctx => ' ' + ctx.parsed.x.toFixed(3) + '%' } } } }
+});
+
+// Degradation line
+new Chart(document.getElementById('c-degrade'), {
+  type: 'line',
+  data: {
+    labels: ['0–20%','20–40%','40–60%','60–80%','80–100%'],
+    datasets: [
+      { label:'sensor_2 (LPC temp ↑)', data:[642.38,642.43,642.53,642.77,643.29], borderColor:'#f04444', backgroundColor:'transparent', tension:0.4, pointRadius:5, pointBackgroundColor:'#f04444' },
+      { label:'sensor_11 (HPC pressure ↑)', data:[47.35,47.39,47.46,47.60,47.91], borderColor:'#4f9cf9', backgroundColor:'transparent', tension:0.4, pointRadius:5, pointBackgroundColor:'#4f9cf9', yAxisID:'y2' },
+      { label:'sensor_7 (HPC outlet ↓)', data:[553.96,553.85,553.64,553.19,552.21], borderColor:'#3ecf8e', backgroundColor:'transparent', tension:0.4, pointRadius:5, pointBackgroundColor:'#3ecf8e', yAxisID:'y3' },
+      { label:'sensor_12 (fuel flow ↓)', data:[521.92,521.83,521.64,521.26,520.43], borderColor:'#f5a623', backgroundColor:'transparent', tension:0.4, pointRadius:5, pointBackgroundColor:'#f5a623', yAxisID:'y4' }
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ display:true, position:'top', labels:{ color:'#9ca3af', font:{size:11}, boxWidth:12, padding:16 } } },
+    scales: {
+      x: { ticks:{ color:tickColor, font:{size:11} }, grid:{ color:gridColor } },
+      y:  { position:'left',  display:false },
+      y2: { position:'left',  display:false },
+      y3: { position:'right', display:false },
+      y4: { position:'right', display:false }
+    }
+  }
+});
+</script>
+</body>
+</html>
